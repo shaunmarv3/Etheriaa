@@ -1,0 +1,100 @@
+# Drug cautions from the user's own record (spec 4.5). Evaluated in code by
+# safety/cautions.py against the user's abnormal lab rows, the diagnoses in
+# their discharge summaries and a stated pregnancy.
+#
+# A caution tells the user which value on which report matters and that a
+# doctor should confirm. It never says "do not take", never says "safe", never
+# gives a dose. No caution found is reported as "no recorded caution", never as
+# clearance.
+#
+# drug_classes: DrugClass names from seed/data/drug_classes.yaml (a drug matches
+#   through its MEMBER_OF edges); drugs: extra drug names matched directly.
+# trigger: exactly one of
+#   {lab: <key in lab_aliases>, flag: high|low}
+#   {condition_any: [phrases matched inside discharge diagnoses]}
+#   {pregnancy: true}
+# OWNER REVIEW REQUIRED (spec 6.5).
+
+lab_aliases:
+  creatinine: [creatinine, serum creatinine, s creatinine, creatinine serum]
+  egfr: [egfr, estimated gfr, gfr, egfr ckd epi]
+  platelets: [platelet count, platelets, platelet, plt]
+  potassium: [potassium, serum potassium, k, potassium serum]
+  alt: [alt, sgpt, alt sgpt, sgpt alt, alanine aminotransferase]
+
+rules:
+  - id: nsaid_creatinine_high
+    drug_classes: [nsaid]
+    trigger: {lab: creatinine, flag: high}
+    rationale: NSAIDs such as ibuprofen can reduce blood flow to the kidneys; with a raised creatinine a doctor should confirm whether they are suitable.
+    source: https://www.nhs.uk/medicines/ibuprofen-for-adults/who-can-and-cannot-take-ibuprofen/
+  - id: nsaid_egfr_low
+    drug_classes: [nsaid]
+    trigger: {lab: egfr, flag: low}
+    rationale: With reduced kidney function (low eGFR), NSAIDs can worsen kidney function; a doctor should confirm before use.
+    source: https://www.nhs.uk/medicines/ibuprofen-for-adults/who-can-and-cannot-take-ibuprofen/
+  - id: nsaid_platelets_low
+    drug_classes: [nsaid]
+    trigger: {lab: platelets, flag: low}
+    rationale: NSAIDs affect platelet function and raise bleeding risk; with a low platelet count (for example in dengue) a doctor should decide on pain relief.
+    source: https://www.who.int/news-room/fact-sheets/detail/dengue-and-severe-dengue
+  - id: nsaid_pregnancy
+    drug_classes: [nsaid]
+    trigger: {pregnancy: true}
+    rationale: NSAIDs are generally avoided in pregnancy, especially from 20 weeks, unless an obstetrician advises them.
+    source: https://www.nhs.uk/medicines/ibuprofen-for-adults/pregnancy-breastfeeding-and-fertility-while-taking-ibuprofen/
+  - id: nsaid_kidney_or_ulcer_history
+    drug_classes: [nsaid]
+    trigger: {condition_any: [chronic kidney disease, ckd, kidney disease, renal failure, peptic ulcer, stomach ulcer, gastric ulcer, duodenal ulcer, gi bleed, gastrointestinal bleeding]}
+    rationale: NSAIDs can worsen kidney disease and can cause bleeding from a stomach or duodenal ulcer; a doctor should confirm before use.
+    source: https://www.nhs.uk/medicines/ibuprofen-for-adults/who-can-and-cannot-take-ibuprofen/
+  - id: aspirin_platelets_low
+    drug_classes: [aspirin, antiplatelet]
+    trigger: {lab: platelets, flag: low}
+    rationale: Aspirin and other antiplatelet medicines raise bleeding risk; with a low platelet count a doctor should confirm before use.
+    source: https://www.nhs.uk/medicines/low-dose-aspirin/who-can-and-cannot-take-low-dose-aspirin/
+  - id: biguanide_egfr_low
+    drug_classes: [biguanide]
+    trigger: {lab: egfr, flag: low}
+    rationale: Metformin needs a doctor's review when kidney function (eGFR) is low, because it is cleared by the kidneys.
+    source: https://www.nhs.uk/medicines/metformin/who-can-and-cannot-take-metformin/
+  - id: biguanide_creatinine_high
+    drug_classes: [biguanide]
+    trigger: {lab: creatinine, flag: high}
+    rationale: Metformin needs a doctor's review when creatinine is raised, because it is cleared by the kidneys.
+    source: https://www.nhs.uk/medicines/metformin/who-can-and-cannot-take-metformin/
+  - id: ace_inhibitor_potassium_high
+    drug_classes: [ace_inhibitor]
+    trigger: {lab: potassium, flag: high}
+    rationale: ACE inhibitors can raise potassium further; a high potassium needs the prescribing doctor's review.
+    source: https://www.nhs.uk/medicines/ramipril/who-can-and-cannot-take-ramipril/
+  - id: ace_inhibitor_pregnancy
+    drug_classes: [ace_inhibitor]
+    trigger: {pregnancy: true}
+    rationale: ACE inhibitors are not normally used in pregnancy; a doctor should review them as soon as possible.
+    source: https://www.nhs.uk/medicines/ramipril/pregnancy-breastfeeding-and-fertility-while-taking-ramipril/
+  - id: arb_potassium_high
+    drug_classes: [arb]
+    trigger: {lab: potassium, flag: high}
+    rationale: ARBs such as telmisartan or losartan can raise potassium further; a high potassium needs the prescribing doctor's review.
+    source: https://www.nhs.uk/medicines/losartan/who-can-and-cannot-take-losartan/
+  - id: arb_pregnancy
+    drug_classes: [arb]
+    trigger: {pregnancy: true}
+    rationale: ARBs are not normally used in pregnancy; a doctor should review them as soon as possible.
+    source: https://www.nhs.uk/medicines/losartan/pregnancy-breastfeeding-and-fertility-while-taking-losartan/
+  - id: anticoagulant_platelets_low
+    drug_classes: [anticoagulant, vitamin_k_antagonist]
+    trigger: {lab: platelets, flag: low}
+    rationale: Blood thinners with a low platelet count raise bleeding risk; the prescribing doctor should know about the platelet count.
+    source: https://www.nhs.uk/medicines/warfarin/
+  - id: potassium_sparing_potassium_high
+    drug_classes: [potassium_sparing_diuretic, potassium_supplement]
+    trigger: {lab: potassium, flag: high}
+    rationale: Potassium-sparing diuretics and potassium supplements raise potassium; a high potassium needs a doctor's review.
+    source: https://www.nhs.uk/medicines/spironolactone/
+  - id: statin_alt_high
+    drug_classes: [statin, cyp3a4_statin]
+    trigger: {lab: alt, flag: high}
+    rationale: Statins can affect the liver; a raised ALT (SGPT) should be discussed with the prescribing doctor.
+    source: https://www.nhs.uk/medicines/atorvastatin/who-can-and-cannot-take-atorvastatin/

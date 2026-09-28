@@ -63,7 +63,7 @@
   level: RED
   category: self_harm
   helpline: tele_manas
-  any_of: ["kill myself", "end my life", "want to die", "suicide", "suicidal", "hurt myself", "self-harm", "self harm", "took all my pills", "overdose on purpose", "cut myself", "no reason to live", "marna chahta", "marna chahti"]
+  any_of: ["kill myself", "end my life", "want to die", "suicide", "suicidal", "hurt myself", "self-harm", "self harm", "took all my pills", "overdose on purpose", "cut myself", "no reason to live", "don't want to live", "dont want to live", "do not want to live", "better off dead", "nothing to live for", "marna chahta", "marna chahti"]
 - id: meningitis_signs
   level: RED
   category: meningitis
@@ -106,8 +106,10 @@
 - id: high_fever
   level: YELLOW
   category: fever
-  any_of: ["103", "104", "105", "high fever", "39.5", "40 degrees"]
-  note: Numbers only match together with fever terms in the M4 matcher context.
+  all_of:
+    - ["fever", "bukhar", "temperature"]
+    - ["103", "104", "105", "high", "39.5", "40 degrees"]
+  note: A number alone is not a fever; it needs a fever term in the same message.
 - id: fever_many_days
   level: YELLOW
   category: fever

@@ -8,6 +8,7 @@ import httpx
 
 from etheria.cache.json_cache import JsonCache
 from etheria.medical_apis.icd10 import Icd10
+from etheria.safety.cautions import load_cautions
 from etheria.seed.curated import load_curated
 
 BOT_BLOCKED = ("https://www.cdc.gov/",)
@@ -16,7 +17,8 @@ BOT_BLOCKED = ("https://www.cdc.gov/",)
 def _sources() -> set[str]:
     c = load_curated()
     groups = [c.symptoms, c.conditions, c.critical, c.extra_drugs]
-    return {item.source for group in groups for item in group}
+    cautions = {r.source for r in load_cautions().rules}
+    return {item.source for group in groups for item in group} | cautions
 
 
 async def test_every_curated_source_resolves() -> None:

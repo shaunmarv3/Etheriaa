@@ -232,6 +232,47 @@ Built with `langchain.agents.create_agent` (DeepSeek). It returns a compiled gra
 
 **Interaction semantics:** a pair with no edge is reported as `not_found`, never as safe, and names that could not be resolved are reported explicitly.
 
+### 4.5a End to end: from message to reply
+
+Every message passes the same deterministic shell; only the retrieval agent chooses what to fetch, and it may fetch nothing. Code steps are fixed and cheap; LLM steps are marked. The M2 knowledge layer (Neo4j + Postgres drug tables) is local data loaded at seed time: at chat time nothing queries DDInter or the brand dataset over the network.
+
+```mermaid
+flowchart TD
+    msg["User message (text, or voice transcribed first)"] --> load["load_context (code): report index, abnormal labs, current medicines"]
+    load --> guard["input_guard (code): abuse, injection, red-flag pre-scan"]
+    guard -- blocked --> canned["canned_reply (code): blocked, off-topic, upload help"]
+    guard -- window over 20 messages --> summ["summarize (LLM): keep last 8, fold the rest"]
+    guard -- otherwise --> und["understand (LLM): intent, symptoms, medicines, tests"]
+    summ --> und
+    und -- off_topic / upload_help --> canned
+    und --> agent["retrieval_agent (LLM): 0 to 8 tool calls, 3 model calls, 25 s"]
+    und --> triage["triage (rules + LLM): RED / YELLOW / GREEN, rules only raise"]
+    agent <--> local[("Local: Neo4j interactions + conditions; Postgres brands, synonyms, labs, medicines, report chunks")]
+    agent <--> public[("Public, live, cached: PubMed 24 h, MedlinePlus 7 d")]
+    agent --> rerank["rerank_evidence (code + cross-encoder): dedupe, cap, cite"]
+    triage --> rerank
+    rerank --> gen["generate (LLM, streamed): RED block first; StreamGuard per sentence"]
+    rerank --> clin["clinical_structuring (LLM): differential, follow-ups"]
+    gen --> fin["finalize (code): disclaimer, save to messages, start audit"]
+    clin --> fin
+    canned --> fin
+    fin --> reply["SSE to the browser: status, tokens, metadata, done"]
+```
+
+Which source answers what:
+
+| Question shape | Tools the agent would pick | Data |
+|---|---|---|
+| "Can I take Dolo 650 with warfarin?" | `resolve_medicine`, `check_interactions` | Postgres brands + Neo4j (DDInter + safety net), local |
+| "Fever and loose motions for 3 days" | `explore_conditions` (triage runs in parallel regardless) | Neo4j curated conditions, local |
+| "Is my haemoglobin low?" | `get_lab_values` | Postgres `lab_results` (the user's uploads, M3) |
+| "What does my discharge summary say about follow-up?" | `search_my_reports` | pgvector + full-text over the user's chunks |
+| "What is PCOS?" | `search_health_topics` | MedlinePlus, live, cached 7 d |
+| "What does recent research say about vitamin D?" | `search_medical_literature` | PubMed, live, cached 24 h |
+| "Thanks!" / a simple follow-up | none | the message window only |
+
+Seed-time only (never per message): DDInter and the Indian Medicine Dataset (downloaded into Neo4j and Postgres), NLM ICD-10, BioPortal and RxNav (codes stamped on graph nodes). NHS, openFDA and WHO pages are citations for the curated files, never queried at runtime. Unnecessary fetching is prevented by routing (canned replies fetch nothing), the agent's own tool choice, hard bounds (3 model calls, 8 tool calls, 8 s per tool, 25 s per node) and the cache (section 8.3). Every health message still costs at least one agent LLM call.
+
 ### 4.6 Safety: decide before speaking, filter while speaking, audit after speaking
 
 **Before.** `triage` combines a rule table (`safety/red_flags.yaml`: cardiac, stroke (FAST), breathing, anaphylaxis, seizure or unconsciousness, heavy bleeding, self-harm, meningitis signs, dengue warning signs) with the DeepSeek assessment, and takes the higher level. For RED, the stream opens with a block emitted by code, before any model token: *call 112, or 108 for an ambulance*. Self-harm red flags add Tele-MANAS: *14416 or 1-800-891-4416*. The generator is instructed to keep a RED answer short and action-oriented.

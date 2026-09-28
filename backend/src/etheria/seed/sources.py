@@ -7,14 +7,11 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import NamedTuple
 
+from etheria.knowledge.severity import rank
 from etheria.knowledge.text import normalise_name
 
 _PARENS = re.compile(r"\([^)]*\)")
 _SPACES = re.compile(r"\s+")
-# DDInter levels, most severe first. The files never disagreed on 2026-09-28,
-# but if they ever do, the more severe level wins.
-SEVERITY_ORDER = ("Major", "Moderate", "Minor", "Unknown")
-_RANK = {level: i for i, level in enumerate(SEVERITY_ORDER)}
 
 
 @dataclass
@@ -35,7 +32,8 @@ def read_ddinter(paths: list[Path]) -> DDInterData:
                 key = (a, b) if a < b else (b, a)
                 level = row["Level"]
                 old = pairs.get(key)
-                if old is None or _RANK.get(level, 99) < _RANK.get(old, 99):
+                # The files never disagreed on 2026-09-28; if they do, the more severe wins.
+                if old is None or rank(level) < rank(old):
                     pairs[key] = level
     return DDInterData(drugs=drugs, pairs=pairs)
 

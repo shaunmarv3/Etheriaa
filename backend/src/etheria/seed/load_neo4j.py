@@ -14,12 +14,11 @@ from typing import Any
 
 import neo4j
 
+from etheria.knowledge.severity import rank
 from etheria.knowledge.text import normalise_name
 from etheria.seed.curated import BODY_SYSTEMS, Curated, ExtraDrug
-from etheria.seed.sources import SEVERITY_ORDER
 
 MAIN_NS = "main"
-_RANK = {level: i for i, level in enumerate(SEVERITY_ORDER)}
 
 
 def _batches(rows: Sequence[dict[str, Any]], size: int) -> Iterable[list[dict[str, Any]]]:
@@ -115,7 +114,7 @@ def expand_critical(c: Curated) -> dict[tuple[str, str], dict[str, str]]:
                     continue
                 pair = (x, y) if x < y else (y, x)
                 old = out.get(pair)
-                if old is None or _RANK[ci.severity] < _RANK[old["severity"]]:
+                if old is None or rank(ci.severity) < rank(old["severity"]):
                     out[pair] = {
                         "severity": ci.severity,
                         "rationale": ci.rationale,

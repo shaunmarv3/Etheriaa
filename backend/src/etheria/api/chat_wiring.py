@@ -40,6 +40,8 @@ class ChatStack:
     pool: AsyncConnectionPool
     http: httpx.AsyncClient
     warmup: asyncio.Task | None = field(default=None)
+    embedder: BgeEmbedder | None = None  # the eval embeds profile report text with it
+    models: Any = None  # the ModelFactory in use (the eval grades with it)
 
     async def close(self) -> None:
         if self.warmup is not None:
@@ -95,6 +97,7 @@ async def build_chat(
     if "start_audit" not in overrides:
         deps.start_audit = service.start_audit
     stack.service = service
+    stack.embedder, stack.models = embedder, deps.models
     if not overrides:
         # Load the local models in the background: loading on the first request
         # took 19 s (the reranker) and would exceed the 8 s tool timeout (BGE).

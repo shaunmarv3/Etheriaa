@@ -2,6 +2,7 @@
 
 import asyncio
 import sys
+from typing import Annotated
 
 import typer
 
@@ -61,11 +62,16 @@ def worker() -> None:
 
 @app.command(name="eval")
 def eval_(
-    suite: str = typer.Option("extraction", help="Which eval to run: extraction (M3)."),
+    suite: str = typer.Option("extraction", help="Which eval: extraction (M3) or graph (M4)."),
+    only: Annotated[
+        list[str] | None, typer.Option(help="Run only these scenario ids (graph; no report).")
+    ] = None,
 ) -> None:
     """Run an eval with the real models (opt-in: it costs money). Writes docs/evals/."""
     from etheria.core.settings import BACKEND_DIR, get_settings
 
+    if suite == "graph":
+        raise typer.Exit(asyncio.run(_graph_eval(only or []), loop_factory=_loop_factory()))
     if suite != "extraction":
         typer.echo(f"unknown suite: {suite}", err=True)
         raise typer.Exit(2)
@@ -80,3 +86,42 @@ def eval_(
         loop_factory=_loop_factory(),
     )
     raise typer.Exit(code)
+
+
+async def _graph_eval(only: list[str]) -> int:
+    from redis.asyncio import Redis
+
+    from etheria.api.chat_wiring import build_chat
+    from etheria.core.settings import get_settings
+    from etheria.db.session import Database
+    from etheria.graph.eval import run_suite
+    from etheria.knowledge.neo4j import create_driver
+
+    settings = get_settings()
+    db, redis, driver = (
+        Database(settings.sqlalchemy_url),
+        Redis.from_url(settings.redis_url),
+        (create_driver(settings)),
+    )
+    stack = await build_chat(settings, db, redis, driver)
+    try:
+        if stack.service is None:
+            typer.echo("DEEPSEEK_API_KEY is not set", err=True)
+            return 2
+        return await run_suite(stack, settings, db, only or None)
+    finally:
+        await stack.close()
+        await driver.close()
+        await redis.aclose()
+        await db.dispose()
+
+
+@app.command(name="graph-diagram")
+def graph_diagram() -> None:
+    """Regenerate the Mermaid diagram of the compiled chat graph in docs/ARCHITECTURE.md."""
+    from etheria.core.settings import BACKEND_DIR
+    from etheria.graph.diagram import write_diagram
+
+    path = BACKEND_DIR.parent / "docs" / "ARCHITECTURE.md"
+    write_diagram(path)
+    typer.echo(f"wrote {path}")

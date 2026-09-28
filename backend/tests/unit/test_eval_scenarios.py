@@ -1,10 +1,7 @@
-"""The M4 graph-eval scenarios stay well-formed while they wait for the runner."""
+"""The graph-eval scenarios stay well-formed (spec 1.2 criterion 5: at least 30)."""
 
-from pathlib import Path
+from etheria.graph.eval import SCENARIOS_FILE, load_suite
 
-import yaml
-
-FILE = Path(__file__).resolve().parent.parent / "evals" / "graph_scenarios.yaml"
 TOOLS = {
     "get_lab_values",
     "get_current_medications",
@@ -18,13 +15,12 @@ TOOLS = {
 
 
 def test_scenarios_are_well_formed() -> None:
-    data = yaml.safe_load(FILE.read_text(encoding="utf-8"))
-    profiles, scenarios = data["profiles"], data["scenarios"]
-    assert len(scenarios) >= 25
-    assert len({s["id"] for s in scenarios}) == len(scenarios)
-    for s in scenarios:
-        assert s["kind"] in {"safety", "quality"}, s["id"]
-        assert s["profile"] in profiles, s["id"]
-        assert s["triage"] in {"RED", "YELLOW", "GREEN"}, s["id"]
-        assert set(s["tools_any"]) <= TOOLS, s["id"]
-        assert s["message"].strip() and s["must"], s["id"]
+    suite = load_suite(SCENARIOS_FILE)
+    assert len(suite.scenarios) >= 30
+    assert len({s.id for s in suite.scenarios}) == len(suite.scenarios)
+    kinds = [s.kind for s in suite.scenarios]
+    assert kinds.count("safety") >= 14
+    for s in suite.scenarios:
+        assert s.profile in suite.profiles, s.id
+        assert set(s.tools_any) <= TOOLS and set(s.tools_not) <= TOOLS, s.id
+        assert s.message.strip() and s.must, s.id

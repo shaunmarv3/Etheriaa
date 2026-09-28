@@ -7,9 +7,9 @@ from typing import Any
 from fastapi import APIRouter, Request
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
-from temporalio.client import Client
 
 from etheria.db.session import Database
+from etheria.ingestion.temporal import connect
 
 router = APIRouter(tags=["health"])
 CHECK_TIMEOUT_S = 3.0
@@ -56,6 +56,6 @@ async def _postgres(db: Database) -> None:
 
 async def _temporal(state: Any) -> None:
     if state.temporal is None:
-        state.temporal = await Client.connect(state.settings.temporal_address)
+        state.temporal = await connect(state.settings)
     if not await state.temporal.service_client.check_health():
         raise RuntimeError("temporal reports unhealthy")

@@ -10,11 +10,13 @@ from redis.asyncio import Redis
 
 from etheria.api.errors import install_error_handlers
 from etheria.api.middleware import RequestContextMiddleware
-from etheria.api.routers import health
+from etheria.api.routers import health, upload
 from etheria.auth import router as auth_router
+from etheria.core.crypto import encryption_key
 from etheria.core.logging import configure_logging
 from etheria.core.settings import Settings, get_settings
 from etheria.db.session import Database
+from etheria.ingestion.storage import FileStore
 from etheria.knowledge.neo4j import create_driver
 
 
@@ -29,7 +31,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         app.state.db = Database(settings.sqlalchemy_url)
         app.state.redis = Redis.from_url(settings.redis_url)
         app.state.neo4j = create_driver(settings)
-        app.state.temporal = None
+        app.state.temporal = None  # connected on first use (upload, readiness)
+        app.state.file_store = FileStore(settings.upload_dir, encryption_key(settings))
         try:
             yield
         finally:
@@ -51,4 +54,5 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     install_error_handlers(app)
     app.include_router(health.router)
     app.include_router(auth_router.router)
+    app.include_router(upload.router)
     return app

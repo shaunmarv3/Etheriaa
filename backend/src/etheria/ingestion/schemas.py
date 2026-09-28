@@ -3,6 +3,7 @@
 from datetime import date
 from decimal import Decimal
 from typing import Any, Literal
+from uuid import UUID
 
 from pydantic import BaseModel, Field
 
@@ -118,3 +119,16 @@ class ChunkDraft(BaseModel):
 
 class EmbeddedChunk(ChunkDraft):
     embedding_b64: str  # float32 little-endian (retrieval.embedding.encode_vector)
+
+
+class IngestInput(BaseModel):
+    """Workflow input. Identifiers only: document content never enters
+    Temporal's history until it has been PII-masked."""
+
+    document_id: UUID
+    user_id: UUID
+
+
+class IngestOutcome(BaseModel):
+    status: Literal["done", "failed", "deleted"]
+    error_code: str | None = None

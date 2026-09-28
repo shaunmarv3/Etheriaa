@@ -48,3 +48,12 @@ def seed(
         loop_factory=_loop_factory(),
     )
     raise typer.Exit(code)
+
+
+@app.command()
+def worker() -> None:
+    """Run the Temporal worker: document ingestion (spec 5.3)."""
+    from etheria.core.settings import get_settings
+    from etheria.ingestion.worker import run_worker
+
+    asyncio.run(run_worker(get_settings()), loop_factory=_loop_factory())

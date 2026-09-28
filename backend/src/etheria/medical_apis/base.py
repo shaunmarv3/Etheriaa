@@ -70,7 +70,10 @@ class ApiClient:
         try:
             resp = await self.http.get(url, params=params, headers=headers)
         except httpx.HTTPError as e:
-            raise MedicalApiError(self.source, f"{type(e).__name__}: {e}") from e
+            # Never the exception text: it can quote the URL, and PubMed's API key
+            # travels as a query parameter.
+            path = httpx.URL(url).path
+            raise MedicalApiError(self.source, f"{type(e).__name__} on {path}") from e
         if resp.status_code != 200:
             raise MedicalApiError(self.source, f"HTTP {resp.status_code} from {resp.url.path}")
         return resp

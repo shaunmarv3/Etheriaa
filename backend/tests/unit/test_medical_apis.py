@@ -167,3 +167,13 @@ async def test_rxnav_rxcui_and_not_found() -> None:
     assert await RxNav(http_for(rec), JsonCache(None)).rxcui("acetaminophen") == "161"
     rec = Recorder({"/rxcui.json": fixture("rxnav_none.json")})
     assert await RxNav(http_for(rec), JsonCache(None)).rxcui("notadrug") is None
+
+
+async def test_errors_never_carry_the_request_url_or_its_api_key() -> None:
+    def handler(req: httpx.Request) -> httpx.Response:
+        raise httpx.ConnectError(f"cannot reach {req.url}", request=req)
+
+    with pytest.raises(MedicalApiError) as e:
+        await client_for(handler).get_json("https://example.test/x", params={"api_key": "SECRET"})
+    assert "SECRET" not in str(e.value)
+    assert "ConnectError" in str(e.value) and "/x" in str(e.value)

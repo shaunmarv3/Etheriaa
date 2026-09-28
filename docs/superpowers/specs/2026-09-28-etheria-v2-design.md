@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | Date | 2026-09-28 |
-| Status | Approved 2026-09-28 (owner: "let's build"); M0 done (`docs/spikes/m0-results.md`) |
+| Status | Approved 2026-09-28 (owner: "let's build"); M0 done (`docs/spikes/m0-results.md`); M1 done; M2 done pending the owner's review of the curated files (6.5) |
 | Repo | `D:\etheria-v2` -> https://github.com/shaunmarv3/etheria-v2 |
 | Reference only, never modified | `D:\Etheria\etheria` (v1 frontend), `D:\Etheria\etheria-backend\etheria-backend` (v1 backend) |
 | Next step after approval | `writing-plans` -> staged implementation plan |
@@ -228,7 +228,7 @@ Built with `langchain.agents.create_agent` (DeepSeek). It returns a compiled gra
 | `search_health_topics` | `query` | Plain-language health summaries | MedlinePlus (cached) |
 | `explore_conditions` | `symptoms` | Associated conditions, first-line treatment classes, red flags, self-care | Neo4j |
 | `resolve_medicine` | `name` | Brand or generic name resolved to ingredients (fuzzy match) | Postgres `medicine_brands` + `drug_synonyms` |
-| `check_interactions` | `drugs`, `include_current_medications` | Interacting pairs with severity and source, unresolved names, a coverage note | Neo4j (DDInter + safety net), via the resolver |
+| `check_interactions` | `drugs`, `include_current_medications` | Interacting pairs with severity and source, `not_found` pairs, unresolved names, duplicate ingredients across products, a coverage note | Neo4j (DDInter + safety net), via the resolver |
 
 **Interaction semantics:** a pair with no edge is reported as `not_found`, never as safe, and names that could not be resolved are reported explicitly.
 
@@ -365,7 +365,7 @@ Schema rule: **normalise what we query by field; use JSONB for what we only disp
 (:Symptom    {code, name, lay_terms[], snomed, cui})
 (:BodySystem {name})
 (:DrugClass  {name})
-(:Drug       {ddinter_id, name, rxcui})
+(:Drug       {ddinter_id, key, name, rxcui, source, atc})   // source: "ddinter" | "curated"
 
 (:Symptom)-[:ASSOCIATED_WITH {weight}]->(:Condition)
 (:Condition)-[:AFFECTS]->(:BodySystem)
@@ -374,28 +374,32 @@ Schema rule: **normalise what we query by field; use JSONB for what we only disp
 (:Drug)-[:INTERACTS_WITH {severity, source}]->(:Drug)    // source: "ddinter" | "critical"
 ```
 
-Constraints: unique `Condition.icd10`, `Symptom.code`, `Drug.ddinter_id`, `DrugClass.name`. Full-text indexes on `Drug.name` and on `Symptom.name` plus `lay_terms`.
+Constraints: unique `Condition.icd10`, `Symptom.code`, `Drug.ddinter_id`, `Drug.key`, `DrugClass.name`, `BodySystem.name`. Full-text indexes on `Drug.name` and on `Symptom.search_text` (the name plus lay terms in one string, so no list-property indexing is needed). `Drug.key` is the normalised name (`knowledge/text.py`) and every lookup uses it; it is unique because curated extra drugs (6.5) have no DDInter id.
+
+Curated nodes and edges carry a namespace property `ns` ("main" for the seeded graph). A curated load deletes its namespace's edges and the curated nodes the files no longer list, then MERGEs, so the graph always equals the YAML. Neo4j Community has one database, so tests load into their own namespace and never touch the seeded graph.
 
 A multi-hop example, *"Can I take ibuprofen for my fever? I'm on telmisartan."*: fever -> associated conditions -> first-line drug class -> ibuprofen via class membership, then ibuprofen `INTERACTS_WITH` telmisartan (moderate, DDInter).
 
 ### 6.2 Postgres drug tables
 - `medicine_brands` (253,973 rows): `name`, `manufacturer`, `type`, `pack_size_label`, `composition1`, `composition2`, `ingredients text[]` (parsed), `is_discontinued`. GIN trigram index on `name` (`pg_trgm`).
-- `drug_synonyms`: `alias` -> `canonical`, about 30 curated entries (for example `paracetamol` -> `acetaminophen`).
+- `drug_synonyms`: `alias` -> `canonical`, 37 curated true renames (for example `paracetamol` -> `Acetaminophen`, `amoxycillin` -> `Amoxicillin`, `glibenclamide` -> `Glyburide`). British spellings (`sulphate`, `aluminium`) and trailing salt words (`metoprolol succinate` -> `metoprolol`) are handled in code (`knowledge/text.py`), not in the table. Measured on the real files: 62.0% of ingredient mentions in the brand dataset match a DDInter name as written, 76.5% after spelling, salt and synonym handling. Adding the 22 curated extra drugs (6.5), 208,330 of 253,973 brands (82.0%) resolve every ingredient to a graph drug (`docs/NUMBERS.md`); the rest are reported as unresolved, never guessed.
 
 ### 6.3 Medicine resolution
-Input name -> exact brand match -> trigram match (similarity at least 0.45; the top candidate must lead the next by 0.1, otherwise the result is ambiguous) -> ingredients -> synonym canonicalisation -> DDInter drug. Anything unresolved is returned as unresolved, never guessed.
+Input name -> is it already an ingredient, synonym or drug? -> exact brand match -> trigram match (similarity at least 0.45; the best ingredient set must lead the best *different* ingredient set by 0.1, otherwise the result is ambiguous) -> ingredients -> spelling, salt and synonym canonicalisation -> Drug node. The lead rule compares ingredient sets, not brand names: "Dolo 650" and "Dolo 500" are strengths of one product, not an ambiguity. Anything unresolved is returned as unresolved, never guessed.
+
+`InteractionService.check(names)` resolves every name, checks every pair of drugs from *different* products in both directions (pairs inside one combination product are not reported), reports the most severe level across sources, lists pairs with no edge as `not_found` with the note that this is not a safety statement, lists unresolved and ambiguous names, and flags the same drug appearing in two products (Dolo + Calpol: double paracetamol).
 
 ### 6.4 Seeder (`uv run etheria seed`)
 
 | Phase | Work |
 |---|---|
-| 1 Download | Fetch the 8 DDInter CSVs and the Indian Medicine Dataset; verify SHA-256 against `seed/manifest.yaml`. DDInter is downloaded at seed time and never committed, because it carries no licence |
+| 1 Download | Fetch the 8 DDInter CSVs and the Indian Medicine Dataset; verify SHA-256 against `seed/manifest.yaml`. DDInter is downloaded at seed time and never committed, because it carries no licence. The DDInter server is slow (one file took 16 minutes on 2026-09-28) but honours HTTP Range, so interrupted downloads resume. Then validate the curated files against the DDInter names |
 | 2 Postgres | Load `medicine_brands` (COPY) and `drug_synonyms` |
 | 3 Neo4j schema | Constraints and indexes |
 | 4 Drugs | 1,939 DDInter drugs, via batched `UNWIND` of 5,000 rows |
 | 5 Interactions | 160,235 DDInter pairs with severity, then the curated critical list (`source: "critical"`) |
 | 6 Curated domain | Conditions, symptoms, body systems, drug classes and their edges, from `seed/data/*.yaml` |
-| 7 Codes | ICD-10 names verified via NLM Clinical Tables; SNOMED CT and CUI via BioPortal; RxCUI via RxNav. Bounded concurrency (8), cached |
+| 7 Codes | ICD-10 names verified via NLM Clinical Tables; SNOMED CT and CUI via BioPortal, exact matches only (the fuzzy top hit for "dengue fever" is dengue haemorrhagic fever: a wrong code is worse than none); RxCUI via RxNav. Bounded concurrency (8), cached 30 days |
 | 8 Verify | Real counts per label and relationship type, written to `docs/NUMBERS.md`; then the canaries |
 
 Canaries (any failure means a non-zero exit):
@@ -408,12 +412,16 @@ Canaries (any failure means a non-zero exit):
 The seeder is idempotent (`MERGE` / upsert) and prints a per-phase report of successes and failures. There is no silent `except`.
 
 ### 6.5 Curated data files (owner review required)
-- `conditions.yaml`: about 100 India-common conditions, including dengue, malaria, typhoid, tuberculosis, chikungunya, iron-deficiency anaemia, vitamin D deficiency, type 2 diabetes, hypertension, hypothyroidism, PCOS, GERD, UTI, migraine and asthma. Each has an ICD-10 code, synonyms, associated symptoms with weights, first-line drug classes, self-care and red flags.
-- `symptoms.yaml`: about 120 symptoms, with Indian-English lay terms.
-- `critical_interactions.yaml`: about 30 drug or drug-class pairs (serotonin syndrome combinations, NSAID + anticoagulant, potassium-sparing diuretic + ACE inhibitor or ARB, and similar), each with a one-line rationale and a public reference.
-- `red_flags.yaml`: the rule table for triage.
+In `seed/data/` unless noted:
+- `conditions.yaml`: 122 India-common conditions, including dengue and severe dengue, malaria (falciparum, vivax), typhoid, tuberculosis, chikungunya, leptospirosis, scrub typhus, hepatitis A and E, iron-deficiency anaemia, vitamin D and B12 deficiency, type 2 diabetes, hypertension, hypothyroidism, PCOS, GERD, UTI, migraine, asthma, snake bite and heat stroke. Each has an ICD-10-CM code (all verified against NLM), synonyms, associated symptoms with weights in (0, 1], first-line drug *classes* (never a drug choice or a dose), self-care and red flags.
+- `symptoms.yaml`: 153 symptoms with Indian-English and romanised Hindi lay terms ("loose motions", "bukhar", "ghabrahat"). A term may belong to one symptom only.
+- `drug_classes.yaml`: 106 classes (WHO ATC grouping). Members are DDInter or extra drug names; non-drug measures (ORS, physiotherapy) are classes with no members.
+- `extra_drugs.yaml`: 22 India-common drugs that DDInter does not list (aceclofenac, nimesulide, etoricoxib, domperidone, gliclazide and others), each with its WHO ATC code. They become `Drug {source: "curated"}` nodes, so the class-level safety net covers them: aceclofenac is an NSAID, so NSAID + warfarin applies.
+- `critical_interactions.yaml`: 42 drug or drug-class pairs (serotonin syndrome, NSAID or antiplatelet + anticoagulant, potassium-sparing diuretic + ACE inhibitor or ARB, lithium, nitrate + PDE-5 inhibitor, statin + macrolide, rifampicin + hormonal contraception, and similar), each with a one-line rationale. Class sides expand to member drugs; one edge per unordered pair; the most severe entry wins.
+- `drug_synonyms.yaml`: section 6.2.
+- `safety/red_flags.yaml` (owned by the triage node): 26 rules covering the section 4.6 categories plus snake bite, heat stroke, poisoning and diabetic emergencies, seeded from v1's rule clusters.
 
-These files are drafted with a source cited for each entry, and reviewed by the owner before M2 closes. They are medical content, and the eval scenarios depend on them.
+Every entry cites a public source; `tests/live/test_curated_sources_live.py` checks that every source resolves and every ICD-10 code exists. Interaction citations are NHS medicine pages that name the interaction, or openFDA drug-label queries that return HTTP 200 only when that label section contains the term. The files are reviewed by the owner before M2 closes: they are medical content, and the eval scenarios depend on them.
 
 ## 7. Data model (Postgres 16 + pgvector + pg_trgm + citext)
 
@@ -564,7 +572,7 @@ Copied from `D:\Etheria\etheria` into `frontend/`; the original is not modified.
 ## 16. Local development and Docker footprint
 - `infra/docker-compose.yml`: `pgvector/pgvector:0.8.6-pg16-trixie` (host port 5433), `neo4j:5.26.31-community` (heap and page cache capped for a laptop), `redis:7-alpine` (host port 6380), and the Temporal CLI dev server `temporalio/temporal:1.9.1` (`server start-dev`, a SQLite file on a volume, runs as its non-root user, UI on :8233). Host ports 5432 and 6379 are taken by the owner's native PostgreSQL 18 service and a Redis in WSL. Named volumes only; no app images.
 - The app runs natively: `uv sync`, then `uv run etheria api` and `uv run etheria worker`. torch comes from the CPU wheel index. Model weights live in the Hugging Face cache on the host.
-- Budget: images about 1.5 GB plus volumes under 1 GB after seeding. M0 measured images at 1.90 GB (Neo4j alone 986 MB) and an empty Neo4j volume at 541 MB, so M2 must trim Neo4j's transaction-log footprint to stay under 3 GB. `docker system df` is recorded in `docs/NUMBERS.md` after M2.
+- Budget: images about 1.5 GB plus volumes under 1 GB after seeding. M0 measured images at 1.90 GB (Neo4j alone 986 MB) and an empty Neo4j volume at 541 MB: Neo4j preallocates 256 MB transaction-log files. M2 sets `db.tx_log.preallocate=false`, `db.tx_log.rotation.size=32M` and `db.tx_log.rotation.retention_policy=keep_none` (a dev box with no backups), which took the empty volume to 1.97 MB (46 MB seeded). Measured after seeding: 2.67 GB in total (images 1.90 GB, volumes 765 MB), within the 3 GB budget (`docs/NUMBERS.md`).
 - Reclaiming v1's roughly 40 GB (`docker system prune`, then compacting Docker Desktop's WSL2 disk) is a separate, destructive step, done only on the owner's explicit request.
 
 ## 17. Build order and milestones

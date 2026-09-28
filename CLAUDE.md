@@ -12,7 +12,8 @@ Etheria v2: an India-aware AI health assistant (triage + health information, not
 
 - Spec approved 2026-09-28. Plans live in `docs/superpowers/plans/`; workflow: plan per milestone -> execute task-by-task -> milestones M0-M7 (spec section 17).
 - M0 done (`docs/spikes/m0-results.md`). M1 done: settings, logging, error shape, schema with RLS and partitions, auth, health/readiness, test harness, import contracts.
-- Next: M2 (knowledge layer). `BIOPORTAL_API_KEY` and `NCBI_API_KEY` are already in `backend/.env`.
+- M2 done (plan `docs/superpowers/plans/2026-09-28-m2-knowledge.md`): medical API clients (`medical_apis/`), knowledge services (`knowledge/`: resolver, interactions, condition explorer), seeder (`seed/`), curated YAML (`seed/data/`, `safety/red_flags.yaml`), real counts in `docs/NUMBERS.md`. The curated YAML still needs the owner's review.
+- Next: M3 (ingestion).
 - Remote: `origin` = https://github.com/shaunmarv3/etheria-v2, branch `main`.
 
 ## Hard rules
@@ -34,10 +35,12 @@ uv run pytest                                      # everything (needs docker in
 cd backend && uv sync                              # Python 3.12, uv + pyproject + lockfile
 uv run etheria api            # FastAPI + in-process LangGraph chat graph
 uv run etheria worker         # Temporal worker: ingestion + schedules
-uv run etheria seed           # knowledge layer load + verification canaries -> docs/NUMBERS.md
+uv run etheria seed           # knowledge layer: 8 phases + canaries -> docs/NUMBERS.md (idempotent)
+uv run etheria seed --verify-only   # counts + canaries only; --skip-codes skips external lookups
 uv run etheria eval           # graph/extraction evals with real models (opt-in, costs money)
 uv run etheria graph-diagram  # regenerate the Mermaid diagram in docs/ARCHITECTURE.md
 uv run pytest tests/unit/test_x.py::test_name     # single test
+uv run pytest tests/live --live                   # real external APIs + curated source URLs (opt-in)
 uv run ruff check . && uv run lint-imports        # lint + module-boundary contracts
 ```
 
@@ -56,7 +59,7 @@ Invariants that span many files:
 
 **Ingestion** (spec 5). A Temporal workflow runs parse -> PII mask (Aadhaar, Indian phone numbers) -> classify -> per-type extraction -> validate -> chunk/embed -> store. The LLM parses and code judges: every extracted number must appear verbatim in the source text (grounding check), and the abnormal flags are computed by code. Rule: normalise into tables what we query by field; store in JSONB what we only display.
 
-**Knowledge layer** (spec 6). Neo4j holds curated India-common conditions and symptoms plus DDInter interactions (`INTERACTS_WITH {severity, source}`), with a curated critical-interaction safety net. Postgres holds the 253,973 Indian brand names (`medicine_brands`, trigram fuzzy match) and `drug_synonyms` (paracetamol -> acetaminophen). Brand names are a lookup, not a graph traversal.
+**Knowledge layer** (spec 6). Neo4j holds curated India-common conditions and symptoms plus DDInter interactions (`INTERACTS_WITH {severity, source}`), with a curated critical-interaction safety net. Postgres holds the 253,973 Indian brand names (`medicine_brands`, trigram fuzzy match) and `drug_synonyms` (paracetamol -> acetaminophen). Brand names are a lookup, not a graph traversal. Drugs are keyed by `Drug.key` (normalised name); 22 India-common drugs DDInter lacks are curated `extra_drugs` so the class-level safety net covers them. Curated nodes and edges carry a namespace `ns` ("main"): Neo4j Community has one database, so integration tests load into their own namespace and clean up, never touching the seeded graph.
 
 **Frontend contract.** SSE event shapes and REST responses must match `frontend/src/lib/types.ts` exactly. For example, `Citation.relevanceScore` is camel-case while the `AgentTrace` keys are snake_case. Contract tests pin this. Endpoints kept, cut and never built are listed in spec section 10.
 

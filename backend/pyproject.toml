@@ -31,6 +31,9 @@ dependencies = [
     "pillow>=11,<12",
     "python-multipart>=0.0.20,<1",
     "pytesseract>=0.3.13,<0.4",
+    "sentence-transformers>=5,<6",
+    "torch>=2.8,<3",
+    "pgvector>=0.4,<1",
 ]
 
 [project.scripts]
@@ -44,6 +47,15 @@ dev = [
     "import-linter>=2.15,<3",
     "reportlab>=4.4,<5",
 ]
+
+# CPU-only torch (spec D11): the CUDA wheels are several GB and there is no GPU need.
+[tool.uv.sources]
+torch = [{ index = "pytorch-cpu" }]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
 
 [build-system]
 requires = ["hatchling"]

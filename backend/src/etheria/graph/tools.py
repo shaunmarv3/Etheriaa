@@ -22,6 +22,7 @@ from etheria.db.repositories import health_record as hr
 from etheria.graph.deps import GraphDeps
 from etheria.graph.nodes.common import lab_line, log
 from etheria.graph.schemas import Evidence
+from etheria.knowledge.resolver import Resolution
 from etheria.retrieval.hybrid import search_reports as hybrid_search
 from etheria.safety.cautions import DrugClasses, LabObservation, evaluate
 from etheria.safety.texts import NO_CAUTION_WORDING, NOT_FOUND_WORDING
@@ -55,6 +56,32 @@ def _lab_evidence(f: hr.LabFact, tool_name: str) -> Evidence:
         identifier=f.document_id,
         title=f"Your report {f.filename}" + (f", {f.report_date}" if f.report_date else ""),
         text=lab_line(f),
+        structured=True,
+        tool=tool_name,
+    )
+
+
+def _medicine_evidence(name: str, r: Resolution, tool_name: str) -> Evidence:
+    if r.status == "resolved":
+        text = f"{name} contains {', '.join(r.ingredients) or 'unrecognised ingredients'}"
+        if r.matched_brand:
+            text += f" (brand {r.matched_brand})"
+    elif r.status == "ambiguous":
+        shared = ", ".join(r.shared_ingredients)
+        text = f"{name} could be any of {', '.join(r.candidates)}; " + (
+            f"all of them contain {shared}, which was checked"
+            if shared
+            else "they share no ingredient, so it could not be checked"
+        )
+    else:
+        text = f"{name} could not be identified"
+    return Evidence(
+        id=f"medicine:{name.lower()}",
+        source="neo4j",
+        kind="note",
+        identifier=name,
+        title=f"Medicine lookup: {name}",
+        text=text,
         structured=True,
         tool=tool_name,
     )
@@ -251,31 +278,8 @@ def make_tools(deps: GraphDeps) -> list:
         reported as ambiguous with the candidates."""
 
         async def work() -> Result:
-            r = await deps.resolver.resolve(name)
-            if r.status == "resolved":
-                text = f"{name} contains {', '.join(r.ingredients) or 'unrecognised ingredients'}"
-                if r.matched_brand:
-                    text += f" (brand {r.matched_brand})"
-            elif r.status == "ambiguous":
-                text = (
-                    f"{name} could be any of {', '.join(r.candidates)}; all of them contain "
-                    f"{', '.join(r.shared_ingredients) or 'no common ingredient'}"
-                )
-            else:
-                text = f"{name} could not be identified"
-            evidence = [
-                Evidence(
-                    id=f"medicine:{name.lower()}",
-                    source="neo4j",
-                    kind="note",
-                    identifier=name,
-                    title="Medicine lookup",
-                    text=text,
-                    structured=True,
-                    tool="resolve_medicine",
-                )
-            ]
-            return _json({"evidence_id": evidence[0].id, "result": text}), evidence
+            e = _medicine_evidence(name, await deps.resolver.resolve(name), "resolve_medicine")
+            return _json({"evidence_id": e.id, "result": e.text}), [e]
 
         return await _bounded("resolve_medicine", work(), t)
 
@@ -296,7 +300,14 @@ def make_tools(deps: GraphDeps) -> list:
                 conditions = await hr.conditions(s, user_id)
             names = list(dict.fromkeys([*drugs, *(m.name_raw for m in current)]))
             report = await deps.interactions.check(names)
-            evidence: list[Evidence] = []
+            resolutions = await asyncio.gather(*(deps.resolver.resolve(d) for d in drugs))
+            # Say what each asked-about name is; an ambiguous brand still has the
+            # ingredient all its variants share, and that ingredient was checked.
+            evidence: list[Evidence] = [
+                _medicine_evidence(d, r, "check_interactions")
+                for d, r in zip(drugs, resolutions, strict=True)
+                if r.status != "resolved" or r.matched_brand
+            ]
             for f in report.findings:
                 evidence.append(
                     Evidence(
@@ -363,7 +374,7 @@ def make_tools(deps: GraphDeps) -> list:
                         tool="check_interactions",
                     )
                 )
-            evidence += await _cautions(drugs, labs, conditions, runtime)
+            evidence += await _cautions(resolutions, labs, conditions, runtime)
             content = {
                 "evidence": [{"evidence_id": e.id, "fact": e.text} for e in evidence],
                 "coverage_note": report.coverage_note,
@@ -373,9 +384,11 @@ def make_tools(deps: GraphDeps) -> list:
         return await _bounded("check_interactions", work(), t)
 
     async def _cautions(
-        drugs: list[str], labs: list[hr.LabFact], conditions: list[str], runtime: ToolRuntime
+        resolutions: list[Resolution],
+        labs: list[hr.LabFact],
+        conditions: list[str],
+        runtime: ToolRuntime,
     ) -> list[Evidence]:
-        resolutions = await asyncio.gather(*(deps.resolver.resolve(d) for d in drugs))
         ingredients = sorted(
             {i for r in resolutions for i in (r.ingredients or r.shared_ingredients)}
         )

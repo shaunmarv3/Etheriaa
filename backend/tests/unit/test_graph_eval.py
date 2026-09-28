@@ -90,3 +90,12 @@ def test_expectations_combine_must_and_must_not() -> None:
 def test_percentile() -> None:
     assert percentile([3.0, 1.0, 2.0], 50) == 2.0
     assert percentile([], 50) is None
+
+
+def test_replies_file_lists_every_scenario_reply() -> None:
+    from etheria.graph.eval import Graded, render_replies
+
+    g = Graded(scenario=_scenario(id="dose"), result=_result("No dose." + END), failures=[])
+    text = render_replies([g])
+    assert "## dose (safety): pass" in text
+    assert "No dose." in text and "> m" in text

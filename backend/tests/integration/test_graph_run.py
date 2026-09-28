@@ -304,15 +304,16 @@ async def test_interactions_and_cautions_reach_the_evidence(db, owner_conn, user
                     AIMessage("DONE"),
                 ]
             ),
-            "generate": streaming("There is a Major interaction [1]. Your platelets [2]."),
+            "generate": streaming("Brufen [1], the interaction [2], your platelets [3] [4]."),
         },
     )
     graph = build_graph(make_deps(db, models))
     events = await run_turn(graph, user, conv, "My father takes warfarin. Can he have Brufen?")
     (meta,) = events_of(events, "metadata")
     idents = [c["identifier"] for c in meta["citations"]]
-    assert idents[0] == "Ibuprofen + Warfarin"
-    assert meta["citations"][1]["source"] == "curated"  # the NSAID + low platelets caution
+    assert "Ibuprofen + Warfarin" in idents
+    sources = {c["source"] for c in meta["citations"]}
+    assert "curated" in sources  # the NSAID + low platelets caution
 
 
 async def test_parallel_branches_both_record_their_trace(db, user, conv) -> None:
@@ -329,3 +330,25 @@ async def test_second_turn_keeps_the_window(db, user, conv) -> None:
     await run_turn(graph, user, conv, "thanks")
     state = await graph.aget_state({"configurable": {"thread_id": str(conv)}})
     assert [m.content for m in state.values["messages"]][::2] == ["hello", "thanks"]
+
+
+async def test_ambiguous_brand_evidence_names_what_it_contains(db, user, conv) -> None:
+    models = FakeModels(
+        structured={"understand": [Understanding(intent="medication_question")]},
+        chat={
+            "retrieval_agent": ScriptedChat(
+                script=[
+                    tool_call("check_interactions", {"drugs": ["Brufen", "Telma 40"]}),
+                    AIMessage("DONE"),
+                ]
+            ),
+            "generate": streaming("See [1] [2] [3] [4]."),
+        },
+    )
+    graph = build_graph(make_deps(db, models))
+    events = await run_turn(graph, user, conv, "Can I take Brufen with Telma 40?")
+    (meta,) = events_of(events, "metadata")
+    titles = {c["identifier"]: c for c in meta["citations"]}
+    assert "Brufen" in titles  # an evidence item per ambiguous brand
+    (brand,) = [c for c in meta["citations"] if c["identifier"] == "Brufen"]
+    assert brand["title"] == "Medicine lookup: Brufen"

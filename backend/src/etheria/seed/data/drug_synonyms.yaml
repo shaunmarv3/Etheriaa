@@ -1,0 +1,45 @@
+# Ingredient names as printed on Indian labels -> the DDInter drug name (spec 6.2).
+# Only true renames live here. Salt suffixes ("metoprolol succinate") and
+# British spellings ("sulphate", "aluminium") are handled in code
+# (knowledge/text.py). Every canonical name is checked against DDInter by the
+# seeder and by tests/unit/test_curated.py.
+# Source for each rename: WHO INN list vs USAN (British Approved Name / INN on
+# the left, the name DDInter uses on the right); checked 2026-09-28.
+# OWNER REVIEW REQUIRED (spec 6.5).
+paracetamol: Acetaminophen
+amoxycillin: Amoxicillin
+cefalexin: Cephalexin
+glibenclamide: Glyburide
+thyroxine: Levothyroxine
+thyroxine sodium: Levothyroxine
+ciclosporin: Cyclosporine
+cyclosporin: Cyclosporine
+sodium valproate: Valproic acid
+divalproex: Valproic acid
+divalproex sodium: Valproic acid
+ethinyl estradiol: Ethinylestradiol
+ethinyloestradiol: Ethinylestradiol
+aspirin: Acetylsalicylic acid
+vitamin d3: Cholecalciferol
+vitamin b6: Pyridoxine
+vitamin b12: Cyanocobalamin
+vitamin c: Ascorbic acid
+methylcobalamin: Mecobalamin
+albuterol: Salbutamol
+levalbuterol: Levosalbutamol
+rifampin: Rifampicin
+clomiphene: Clomifene
+clomiphene citrate: Clomifene
+frusemide: Furosemide
+adrenaline: Epinephrine
+noradrenaline: Norepinephrine
+lignocaine: Lidocaine
+chlorphenamine: Chlorpheniramine
+liquid paraffin: Mineral oil
+levo-carnitine: Levocarnitine
+beclometasone: Beclomethasone dipropionate
+beclomethasone: Beclomethasone dipropionate
+lithium: Lithium carbonate
+ferrous sulphate: Ferrous sulfate anhydrous
+ferrous sulfate: Ferrous sulfate anhydrous
+human chorionic gonadotropin: Chorionic Gonadotropin (Human)

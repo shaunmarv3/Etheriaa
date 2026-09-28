@@ -40,10 +40,20 @@ def with_db(url: str, name: str) -> str:
     return url.rsplit("/", 1)[0] + "/" + name
 
 
-def pytest_collection_modifyitems(items: list[pytest.Item]) -> None:
+def pytest_addoption(parser: pytest.Parser) -> None:
+    parser.addoption("--live", action="store_true", help="run tests that call real external APIs")
+
+
+def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
+    skip_live = pytest.mark.skip(reason="calls real external APIs; run with --live")
     for item in items:
-        if {"integration", "security"} & set(item.path.parts):
+        parts = set(item.path.parts)
+        if {"integration", "security"} & parts:
             item.add_marker(pytest.mark.integration)
+        if "live" in parts:
+            item.add_marker(pytest.mark.live)
+            if not config.getoption("--live"):
+                item.add_marker(skip_live)
 
 
 @pytest.fixture

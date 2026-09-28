@@ -43,6 +43,9 @@ class Settings(BaseSettings):
     ncbi_api_key: SecretStr | None = None
     bioportal_api_key: SecretStr | None = None
 
+    # Seed downloads (DDInter is never committed: backend/data/ is gitignored).
+    seed_dir: Path = BACKEND_DIR / "data" / "seed"
+
     @field_validator("jwt_secret")
     @classmethod
     def _jwt_secret_is_long(cls, v: SecretStr) -> SecretStr:

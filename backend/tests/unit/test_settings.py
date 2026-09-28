@@ -47,3 +47,8 @@ def test_secrets_do_not_appear_in_repr() -> None:
 def test_psycopg_url() -> None:
     assert to_psycopg_url("postgresql://u:p@h:5433/d") == "postgresql+psycopg://u:p@h:5433/d"
     assert Settings(**BASE).sqlalchemy_url == "postgresql+psycopg://a:b@h:1/d"
+
+
+def test_seed_dir_defaults_to_gitignored_backend_data() -> None:
+    s = Settings(**BASE)
+    assert s.seed_dir.parts[-3:] == ("backend", "data", "seed")

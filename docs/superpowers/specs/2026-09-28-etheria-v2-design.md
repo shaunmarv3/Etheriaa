@@ -601,4 +601,4 @@ When M7 closes, every current claim is true, and its numbers come from `docs/NUM
 - "LangGraph": the chat graph, with its diagram generated from code.
 - "Tri-layer RAG (pgvector + PubMed + Neo4j)": true, with MedlinePlus as well.
 - The Neo4j bullet is rewritten with the real counts and "DDInter-backed interaction checks with RxNorm normalisation".
-- "Temporal", "Whisper", "BGE-large-en-v1.5" and "Redis" are all true. "Clerk Auth" becomes "JWT auth with refresh-token rotation".
+- "Temporal", "BGE-large-en-v1.5" and "Redis" are all true. "Whisper" is true only if M5 picks a Whisper-family model (for example `faster-whisper`); otherwise the claim is rewritten. "Clerk Auth" becomes "JWT auth with refresh-token rotation".

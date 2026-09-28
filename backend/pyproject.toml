@@ -87,6 +87,12 @@ testpaths = ["tests"]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 addopts = "-ra --strict-markers"
+filterwarnings = [
+    # ToolRuntime carries the frozen ChatContext through a pydantic field typed None (graph/agent.py).
+    "ignore:Pydantic serializer warnings:UserWarning",
+    # Graph tests without a checkpointer still pass durability="exit", as the service does.
+    "ignore:`durability` has no effect when no checkpointer is present:UserWarning",
+]
 markers = [
     "integration: needs the docker infra (postgres, redis, neo4j, temporal)",
     "live: calls real external APIs; skipped unless pytest --live",

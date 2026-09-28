@@ -20,3 +20,14 @@ def load_prompt(name: str) -> str:
 
 def wrap_document(text: str) -> str:
     return "<document>\n" + _TAG.sub(r"[\1document]", text) + "\n</document>"
+
+
+_SPACE = re.compile(r"\s+")
+
+
+def datamark(text: str) -> str:
+    """Spotlighting for report text that reaches a chat model (spec 5.5, 11.1):
+    whitespace inside the block becomes '^', so injected sentences read as marked
+    data rather than as prose addressed to the model. Extraction (M3) does not
+    datamark: the extractor must copy test names verbatim."""
+    return wrap_document(_SPACE.sub("^", text.strip()))

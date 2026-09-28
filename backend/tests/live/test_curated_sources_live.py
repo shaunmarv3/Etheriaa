@@ -29,11 +29,7 @@ async def test_every_curated_source_resolves() -> None:
                 return url, (await http.get(url)).status_code
 
         results = await asyncio.gather(*(status(u) for u in sorted(_sources())))
-    dead = [
-        (u, s)
-        for u, s in results
-        if s != 200 and not (s == 403 and u.startswith(BOT_BLOCKED))
-    ]
+    dead = [(u, s) for u, s in results if s != 200 and not (s == 403 and u.startswith(BOT_BLOCKED))]
     assert dead == []
 
 

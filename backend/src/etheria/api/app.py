@@ -6,7 +6,6 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from neo4j import AsyncGraphDatabase
 from redis.asyncio import Redis
 
 from etheria.api.errors import install_error_handlers
@@ -16,6 +15,7 @@ from etheria.auth import router as auth_router
 from etheria.core.logging import configure_logging
 from etheria.core.settings import Settings, get_settings
 from etheria.db.session import Database
+from etheria.knowledge.neo4j import create_driver
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -28,10 +28,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         # and /health/ready reports which one.
         app.state.db = Database(settings.sqlalchemy_url)
         app.state.redis = Redis.from_url(settings.redis_url)
-        app.state.neo4j = AsyncGraphDatabase.driver(
-            settings.neo4j_uri,
-            auth=(settings.neo4j_user, settings.neo4j_password.get_secret_value()),
-        )
+        app.state.neo4j = create_driver(settings)
         app.state.temporal = None
         try:
             yield

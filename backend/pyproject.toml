@@ -12,15 +12,30 @@ dependencies = [
     "psycopg[binary,pool]>=3.3,<4",
     "temporalio>=1.33,<2",
     "httpx>=0.28,<1",
-    "pydantic>=2.13,<3",
+    "pydantic[email]>=2.13,<3",
     "python-dotenv>=1.2,<2",
+    "fastapi>=0.141,<1",
+    "uvicorn>=0.54,<1",
+    "sqlalchemy[asyncio]>=2.1,<3",
+    "alembic>=1.20,<2",
+    "pydantic-settings>=2.15,<3",
+    "argon2-cffi>=25.1,<26",
+    "pyjwt>=2.15,<3",
+    "structlog>=26.1,<27",
+    "typer>=0.27,<1",
+    "redis>=8.1,<9",
+    "neo4j>=6.3,<7",
 ]
+
+[project.scripts]
+etheria = "etheria.cli:app"
 
 [dependency-groups]
 dev = [
     "pytest>=9.1,<10",
     "pytest-asyncio>=1.4,<2",
     "ruff>=0.16,<0.17",
+    "import-linter>=2.15,<3",
 ]
 
 [build-system]
@@ -33,3 +48,62 @@ packages = ["src/etheria"]
 [tool.ruff]
 line-length = 100
 target-version = "py312"
+extend-exclude = ["spikes"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "ASYNC"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+addopts = "-ra --strict-markers"
+markers = ["integration: needs the docker infra (postgres, redis, neo4j, temporal)"]
+
+# Spec 3.3 dependency rules.
+[tool.importlinter]
+root_package = "etheria"
+
+[[tool.importlinter.contracts]]
+name = "Nothing imports api"
+type = "forbidden"
+source_modules = [
+    "etheria.core", "etheria.db", "etheria.auth", "etheria.cache", "etheria.llm",
+    "etheria.graph", "etheria.retrieval", "etheria.knowledge", "etheria.medical_apis",
+    "etheria.ingestion", "etheria.safety", "etheria.voice", "etheria.seed",
+]
+forbidden_modules = ["etheria.api"]
+
+[[tool.importlinter.contracts]]
+name = "core imports nothing from etheria"
+type = "forbidden"
+source_modules = ["etheria.core"]
+forbidden_modules = [
+    "etheria.db", "etheria.auth", "etheria.cache", "etheria.llm", "etheria.graph",
+    "etheria.retrieval", "etheria.knowledge", "etheria.medical_apis", "etheria.ingestion",
+    "etheria.safety", "etheria.voice", "etheria.seed", "etheria.api", "etheria.cli",
+]
+
+[[tool.importlinter.contracts]]
+name = "ingestion never imports graph"
+type = "forbidden"
+source_modules = ["etheria.ingestion"]
+forbidden_modules = [
+    "etheria.graph", "etheria.auth", "etheria.knowledge", "etheria.medical_apis",
+    "etheria.voice", "etheria.seed",
+]
+
+[[tool.importlinter.contracts]]
+name = "Leaf services never import graph or ingestion"
+type = "forbidden"
+source_modules = [
+    "etheria.knowledge", "etheria.retrieval", "etheria.medical_apis", "etheria.safety",
+    "etheria.voice",
+]
+forbidden_modules = ["etheria.graph", "etheria.ingestion"]
+
+[[tool.importlinter.contracts]]
+name = "graph imports only its allowed layers"
+type = "forbidden"
+source_modules = ["etheria.graph"]
+forbidden_modules = ["etheria.ingestion", "etheria.auth", "etheria.voice", "etheria.seed"]

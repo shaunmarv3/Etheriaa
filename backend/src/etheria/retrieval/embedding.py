@@ -5,6 +5,7 @@ Weights live in the Hugging Face cache on the host, never in Docker."""
 
 import base64
 import struct
+import threading
 from typing import Protocol
 
 QUERY_PREFIX = "Represent this sentence for searching relevant passages: "
@@ -26,17 +27,21 @@ class BgeEmbedder:
         self.model_name = model_name
         self.batch_size = batch_size
         self._model = None
+        self._lock = threading.Lock()  # a warm-up thread and a request may race
 
     def load(self) -> None:
-        if self._model is not None:
-            return
-        from sentence_transformers import SentenceTransformer  # heavy: import on first use
+        with self._lock:
+            if self._model is not None:
+                return
+            from sentence_transformers import SentenceTransformer  # heavy: import on first use
 
-        model = SentenceTransformer(self.model_name, device="cpu")
-        (probe,) = model.encode(["probe"], normalize_embeddings=True)
-        if len(probe) != DIM:
-            raise RuntimeError(f"{self.model_name} gives {len(probe)} dims; the schema has {DIM}")
-        self._model = model
+            model = SentenceTransformer(self.model_name, device="cpu")
+            (probe,) = model.encode(["probe"], normalize_embeddings=True)
+            if len(probe) != DIM:
+                raise RuntimeError(
+                    f"{self.model_name} gives {len(probe)} dims; the schema has {DIM}"
+                )
+            self._model = model
 
     @property
     def model(self):

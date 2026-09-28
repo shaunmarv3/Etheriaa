@@ -1,0 +1,343 @@
+# Drug classes (spec 6.1: (:Drug)-[:MEMBER_OF]->(:DrugClass), (:Condition)-[:FIRST_LINE]->(:DrugClass)).
+# Members are DDInter drug names or extra_drugs.yaml names (checked by the seeder
+# and tests/unit/test_curated.py).
+# Classes are used for two things only: "first-line treatment class" facts on
+# conditions (never doses, never a prescription), and expanding class-level
+# critical interactions (critical_interactions.yaml) to member drugs.
+# A class with no members is a non-drug measure (for example ORS).
+# Membership source: WHO ATC classification (https://atcddd.fhi.no/atc_ddd_index/).
+# OWNER REVIEW REQUIRED (spec 6.5).
+
+# --- pain, fever, inflammation ---
+- name: paracetamol
+  label: Paracetamol (acetaminophen), antipyretic analgesic
+  members: [Acetaminophen]
+- name: nsaid
+  label: Non-steroidal anti-inflammatory drugs
+  members: [Ibuprofen, Diclofenac, Naproxen, Mefenamic acid, Ketorolac, Indomethacin, Piroxicam, Meloxicam, Celecoxib, Etodolac, Aceclofenac, Nimesulide, Etoricoxib]
+- name: aspirin
+  label: Aspirin (acetylsalicylic acid)
+  members: [Acetylsalicylic acid]
+- name: triptan
+  label: Triptans (migraine)
+  members: [Sumatriptan, Rizatriptan, Zolmitriptan, Naratriptan, Eletriptan]
+- name: serotonergic_opioid
+  label: Opioids with serotonergic activity
+  members: [Tramadol, Tapentadol, Meperidine, Methadone, Fentanyl, Dextromethorphan]
+- name: opioid
+  label: Opioid analgesics
+  members: [Tramadol, Tapentadol, Morphine, Codeine, Oxycodone, Hydrocodone, Fentanyl, Methadone, Meperidine, Buprenorphine]
+- name: colchicine
+  label: Colchicine
+  members: [Colchicine]
+- name: xanthine_oxidase_inhibitor
+  label: Urate-lowering xanthine oxidase inhibitors
+  members: [Allopurinol, Febuxostat]
+- name: dmard
+  label: Disease-modifying antirheumatic drugs
+  members: [Methotrexate, Hydroxychloroquine, Sulfasalazine, Leflunomide]
+- name: corticosteroid_systemic
+  label: Systemic corticosteroids
+  members: [Prednisolone, Prednisone, Methylprednisolone, Dexamethasone, Hydrocortisone, Deflazacort, Betamethasone]
+
+# --- infections ---
+- name: oral_rehydration
+  label: Oral rehydration salts (ORS) and zinc
+  members: [Zinc sulfate]
+- name: penicillin
+  label: Penicillins
+  members: [Amoxicillin, Ampicillin, Cloxacillin, Benzylpenicillin]
+- name: cephalosporin
+  label: Cephalosporins
+  members: [Cephalexin, Cefuroxime, Cefixime, Cefpodoxime, Ceftriaxone, Cefotaxime, Cefadroxil]
+- name: macrolide
+  label: Macrolides
+  members: [Azithromycin, Clarithromycin, Erythromycin, Roxithromycin]
+- name: strong_cyp3a4_macrolide
+  label: Macrolides that strongly inhibit CYP3A4
+  members: [Clarithromycin, Erythromycin]
+- name: fluoroquinolone
+  label: Fluoroquinolones
+  members: [Ciprofloxacin, Ofloxacin, Levofloxacin, Norfloxacin, Moxifloxacin]
+- name: tetracycline
+  label: Tetracyclines
+  members: [Doxycycline, Minocycline, Tetracycline]
+- name: nitroimidazole
+  label: Nitroimidazoles
+  members: [Metronidazole, Tinidazole, Ornidazole, Secnidazole]
+- name: nitrofurantoin
+  label: Nitrofurantoin
+  members: [Nitrofurantoin]
+- name: trimethoprim
+  label: Trimethoprim and co-trimoxazole
+  members: [Trimethoprim, Sulfamethoxazole]
+- name: antitubercular
+  label: First-line anti-tuberculosis drugs (under the national TB programme)
+  members: [Isoniazid, Rifampicin, Pyrazinamide, Ethambutol]
+- name: rifamycin
+  label: Rifamycins (strong enzyme inducers)
+  members: [Rifampicin, Rifabutin, Rifapentine]
+- name: antimalarial
+  label: Antimalarials (under the national malaria programme)
+  members: [Chloroquine, Primaquine, Artesunate, Artemether, Lumefantrine, Quinine, Mefloquine]
+- name: antiviral_herpes
+  label: Antivirals for herpes viruses
+  members: [Acyclovir, Valaciclovir]
+- name: antiviral_influenza
+  label: Neuraminidase inhibitors (influenza)
+  members: [Oseltamivir]
+- name: azole_antifungal
+  label: Azole antifungals (systemic)
+  members: [Fluconazole, Itraconazole, Ketoconazole, Voriconazole]
+- name: strong_cyp3a4_azole
+  label: Azole antifungals that strongly inhibit CYP3A4
+  members: [Itraconazole, Ketoconazole, Voriconazole]
+- name: antifungal_topical
+  label: Topical antifungals
+  members: [Clotrimazole, Terbinafine, Miconazole (topical)]
+- name: anthelmintic
+  label: Anthelmintics (deworming)
+  members: [Albendazole, Mebendazole, Ivermectin]
+- name: scabicide
+  label: Scabicides (permethrin cream, ivermectin)
+  members: [Ivermectin]
+- name: leprosy_mdt
+  label: Leprosy multidrug therapy (under the national programme)
+  members: [Dapsone, Rifampicin, Clofazimine]
+- name: rabies_prophylaxis
+  label: Rabies post-exposure prophylaxis (wound washing, vaccine, immunoglobulin)
+  members: []
+- name: antivenom
+  label: Anti-snake venom (hospital only)
+  members: []
+
+# --- heart, blood pressure, blood ---
+- name: ace_inhibitor
+  label: ACE inhibitors
+  members: [Enalapril, Ramipril, Lisinopril, Perindopril, Captopril]
+- name: arb
+  label: Angiotensin receptor blockers
+  members: [Telmisartan, Losartan, Olmesartan, Valsartan, Irbesartan]
+- name: ccb
+  label: Calcium channel blockers
+  members: [Amlodipine, Nifedipine, Cilnidipine, Diltiazem, Verapamil]
+- name: thiazide
+  label: Thiazide and thiazide-like diuretics
+  members: [Hydrochlorothiazide, Chlorthalidone, Indapamide]
+- name: loop_diuretic
+  label: Loop diuretics
+  members: [Furosemide, Torasemide, Bumetanide]
+- name: potassium_sparing_diuretic
+  label: Potassium-sparing diuretics
+  members: [Spironolactone, Eplerenone, Amiloride, Triamterene]
+- name: potassium_supplement
+  label: Potassium supplements
+  members: [Potassium chloride, Potassium citrate]
+- name: beta_blocker
+  label: Beta blockers
+  members: [Metoprolol, Atenolol, Propranolol, Bisoprolol, Carvedilol, Nebivolol]
+- name: statin
+  label: Statins
+  members: [Atorvastatin, Rosuvastatin, Simvastatin, Pravastatin, Lovastatin]
+- name: cyp3a4_statin
+  label: Statins cleared mainly by CYP3A4
+  members: [Simvastatin, Lovastatin, Atorvastatin]
+- name: nitrate
+  label: Nitrates
+  members: [Nitroglycerin, Isosorbide mononitrate, Isosorbide dinitrate]
+- name: pde5_inhibitor
+  label: PDE-5 inhibitors
+  members: [Sildenafil, Tadalafil, Vardenafil]
+- name: antiplatelet
+  label: Antiplatelet drugs
+  members: [Acetylsalicylic acid, Clopidogrel, Prasugrel, Ticagrelor]
+- name: clopidogrel
+  label: Clopidogrel
+  members: [Clopidogrel]
+- name: anticoagulant
+  label: Oral anticoagulants
+  members: [Warfarin, Acenocoumarol, Apixaban, Rivaroxaban]
+- name: vitamin_k_antagonist
+  label: Vitamin K antagonists
+  members: [Warfarin, Acenocoumarol]
+- name: digoxin
+  label: Digoxin
+  members: [Digoxin]
+- name: amiodarone
+  label: Amiodarone
+  members: [Amiodarone]
+
+# --- diabetes, thyroid, hormones, nutrition ---
+- name: biguanide
+  label: Metformin
+  members: [Metformin]
+- name: sulfonylurea
+  label: Sulfonylureas
+  members: [Glimepiride, Glyburide, Glipizide, Gliclazide]
+- name: dpp4_inhibitor
+  label: DPP-4 inhibitors
+  members: [Sitagliptin, Linagliptin, Vildagliptin, Saxagliptin, Teneligliptin]
+- name: sglt2_inhibitor
+  label: SGLT2 inhibitors
+  members: [Dapagliflozin, Empagliflozin, Canagliflozin]
+- name: insulin
+  label: Insulins
+  members: [Insulin human, Insulin glargine, Insulin aspart (aspart), Insulin detemir, Insulin degludec]
+- name: thyroid_hormone
+  label: Thyroid hormone replacement
+  members: [Levothyroxine]
+- name: antithyroid
+  label: Antithyroid drugs
+  members: [Methimazole, Carbimazole, Propylthiouracil]
+- name: vitamin_d
+  label: Vitamin D
+  members: [Cholecalciferol, Ergocalciferol, Calcitriol]
+- name: calcium_supplement
+  label: Calcium supplements
+  members: [Calcium carbonate, Calcium citrate]
+- name: iron_supplement
+  label: Oral iron
+  members: [Ferrous sulfate anhydrous, Ferrous fumarate, Ferrous gluconate, Iron]
+- name: vitamin_b12
+  label: Vitamin B12
+  members: [Cyanocobalamin, Mecobalamin, Hydroxocobalamin]
+- name: folic_acid
+  label: Folic acid
+  members: [Folic acid]
+- name: bisphosphonate
+  label: Bisphosphonates
+  members: [Alendronic acid, Risedronic acid, Ibandronate, Zoledronic acid]
+- name: hormonal_contraceptive
+  label: Hormonal contraceptives
+  members: [Ethinylestradiol, Levonorgestrel, Norethisterone, Desogestrel, Drospirenone]
+- name: insulin_sensitiser_pcos
+  label: Metformin in PCOS
+  members: [Metformin]
+
+# --- gut and liver ---
+- name: ppi
+  label: Proton pump inhibitors
+  members: [Omeprazole, Pantoprazole, Rabeprazole, Esomeprazole, Lansoprazole]
+- name: cyp2c19_ppi
+  label: PPIs that strongly inhibit CYP2C19
+  members: [Omeprazole, Esomeprazole]
+- name: h2_blocker
+  label: H2 receptor blockers
+  members: [Famotidine, Ranitidine]
+- name: antacid
+  label: Antacids
+  members: [Aluminum hydroxide, Magnesium hydroxide, Calcium carbonate, Sodium bicarbonate]
+- name: antiemetic
+  label: Antiemetics
+  members: [Ondansetron, Metoclopramide, Domperidone, Prochlorperazine]
+- name: laxative
+  label: Laxatives
+  members: [Lactulose, Bisacodyl, Polyethylene glycol (3350), Psyllium, Sodium picosulfate]
+- name: antispasmodic
+  label: Antispasmodics
+  members: [Dicyclomine, Hyoscine butylbromide, Mebeverine, Drotaverine]
+- name: ursodeoxycholic_acid
+  label: Ursodeoxycholic acid
+  members: [Ursodeoxycholic acid]
+
+# --- lungs and allergy ---
+- name: inhaled_saba
+  label: Short-acting inhaled bronchodilators (reliever)
+  members: [Salbutamol, Levosalbutamol, Terbutaline]
+- name: inhaled_corticosteroid
+  label: Inhaled corticosteroids (preventer)
+  members: [Budesonide, Beclomethasone dipropionate, Fluticasone]
+- name: inhaled_lama
+  label: Long-acting inhaled antimuscarinics
+  members: [Tiotropium, Glycopyrronium]
+- name: antihistamine
+  label: Antihistamines
+  members: [Cetirizine, Levocetirizine, Fexofenadine, Loratadine, Chlorpheniramine, Desloratadine]
+- name: leukotriene_antagonist
+  label: Leukotriene receptor antagonists
+  members: [Montelukast]
+- name: theophylline
+  label: Theophylline and related xanthines
+  members: [Theophylline, Aminophylline, Doxofylline]
+- name: epinephrine
+  label: Adrenaline (epinephrine), emergency use
+  members: [Epinephrine]
+
+# --- brain and mood ---
+- name: ssri
+  label: Selective serotonin reuptake inhibitors
+  members: [Sertraline, Fluoxetine, Escitalopram, Citalopram, Paroxetine, Fluvoxamine]
+- name: snri
+  label: Serotonin-noradrenaline reuptake inhibitors
+  members: [Venlafaxine, Duloxetine, Desvenlafaxine]
+- name: tca
+  label: Tricyclic antidepressants
+  members: [Amitriptyline, Nortriptyline, Imipramine, Clomipramine, Dosulepin]
+- name: maoi
+  label: Monoamine oxidase inhibitors
+  members: [Phenelzine, Tranylcypromine, Isocarboxazid, Selegiline, Rasagiline]
+- name: linezolid
+  label: Linezolid (a weak MAO inhibitor)
+  members: [Linezolid]
+- name: benzodiazepine
+  label: Benzodiazepines
+  members: [Alprazolam, Clonazepam, Diazepam, Lorazepam, Chlordiazepoxide, Etizolam]
+- name: anticonvulsant
+  label: Antiseizure medicines
+  members: [Valproic acid, Levetiracetam, Phenytoin, Carbamazepine, Lamotrigine, Oxcarbazepine]
+- name: enzyme_inducing_anticonvulsant
+  label: Enzyme-inducing antiseizure medicines
+  members: [Carbamazepine, Phenytoin, Phenobarbital]
+- name: lithium
+  label: Lithium
+  members: [Lithium carbonate]
+- name: antivertigo
+  label: Vestibular suppressants and antivertigo drugs
+  members: [Betahistine, Cinnarizine, Prochlorperazine, Meclizine]
+- name: sleep_hygiene
+  label: Sleep hygiene and CBT for insomnia (non-drug)
+  members: []
+- name: psychological_therapy
+  label: Psychological therapy (non-drug)
+  members: []
+- name: nicotine_replacement
+  label: Nicotine replacement and cessation medicines
+  members: [Nicotine, Varenicline, Bupropion]
+- name: alcohol_dependence_treatment
+  label: Medicines for alcohol dependence (specialist)
+  members: [Naltrexone, Acamprosate, Disulfiram]
+- name: thiamine
+  label: Thiamine (vitamin B1)
+  members: [Thiamine]
+
+# --- skin, eye, urology, bone ---
+- name: topical_corticosteroid
+  label: Topical corticosteroids
+  members: [Hydrocortisone (topical), Betamethasone (topical), Clobetasol (topical)]
+- name: topical_retinoid
+  label: Topical retinoids and benzoyl peroxide
+  members: [Tretinoin (topical), Adapalene, Benzoyl peroxide (topical)]
+- name: emollient
+  label: Emollients and moisturisers (non-drug)
+  members: []
+- name: antibiotic_eye_drops
+  label: Antibiotic eye drops (prescribed by a doctor)
+  members: []  # eye drops: kept as a non-drug label so drops never map onto systemic drug nodes
+- name: glaucoma_drops
+  label: Glaucoma eye drops
+  members: [Timolol (ophthalmic), Latanoprost, Brimonidine (ophthalmic)]
+- name: alpha_blocker
+  label: Alpha blockers (prostate)
+  members: [Tamsulosin, Alfuzosin, Silodosin, Doxazosin]
+- name: five_alpha_reductase_inhibitor
+  label: 5-alpha reductase inhibitors
+  members: [Finasteride, Dutasteride]
+- name: urinary_alkaliniser
+  label: Urinary alkalinisers
+  members: [Potassium citrate]
+- name: physiotherapy
+  label: Physiotherapy and exercise (non-drug)
+  members: []
+- name: surgery_referral
+  label: Surgical assessment (non-drug)
+  members: []

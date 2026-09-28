@@ -1,0 +1,180 @@
+# Curated symptoms with Indian-English and Hindi (romanised) lay terms (spec 6.5).
+# code: stable slug (Symptom.code in Neo4j). A term may belong to one symptom only
+# (tests/unit/test_curated.py). Source: the MedlinePlus page defining the symptom.
+# SNOMED CT and UMLS CUI are filled by the seeder (phase 7) from BioPortal.
+# OWNER REVIEW REQUIRED (spec 6.5): drafted 2026-09-28, not yet reviewed.
+
+# --- general ---
+- {code: fever, name: Fever, lay_terms: [bukhar, high temperature, feverish, temperature], source: https://medlineplus.gov/fever.html}
+- {code: high_fever, name: High fever, lay_terms: [very high fever, fever above 103, fever 104], source: https://medlineplus.gov/fever.html}
+- {code: chills, name: Chills, lay_terms: [shivering, rigors, kapkapi, shaking with cold], source: https://medlineplus.gov/ency/article/003091.htm}
+- {code: fatigue, name: Fatigue, lay_terms: [tiredness, weakness, no energy, thakan, feeling weak], source: https://medlineplus.gov/fatigue.html}
+- {code: body_ache, name: Body ache, lay_terms: [body pain, badan dard, muscle pain, myalgia], source: https://medlineplus.gov/ency/article/003178.htm}
+- {code: weight_loss, name: Unexplained weight loss, lay_terms: [losing weight, weight loss], source: https://medlineplus.gov/ency/article/003107.htm}
+- {code: weight_gain, name: Weight gain, lay_terms: [putting on weight, gaining weight], source: https://medlineplus.gov/ency/article/003084.htm}
+- {code: loss_of_appetite, name: Loss of appetite, lay_terms: [no appetite, not feeling hungry, bhookh nahi lagti], source: https://medlineplus.gov/ency/article/003121.htm}
+- {code: night_sweats, name: Night sweats, lay_terms: [sweating at night], source: https://medlineplus.gov/sweat.html}
+- {code: excessive_sweating, name: Excessive sweating, lay_terms: [sweating a lot, cold sweat], source: https://medlineplus.gov/ency/article/007259.htm}
+- {code: excessive_thirst, name: Excessive thirst, lay_terms: [always thirsty, very thirsty, dry mouth], source: https://medlineplus.gov/ency/article/003085.htm}
+- {code: excessive_hunger, name: Excessive hunger, lay_terms: [always hungry], source: https://medlineplus.gov/diabetes.html}
+- {code: swollen_lymph_nodes, name: Swollen lymph nodes, lay_terms: [swollen glands, gland swelling, lumps in neck], source: https://medlineplus.gov/ency/article/003097.htm}
+- {code: pallor, name: Pale skin, lay_terms: [looking pale, paleness, pale face], source: https://medlineplus.gov/ency/article/003244.htm}
+- {code: jaundice, name: Jaundice, lay_terms: [yellow eyes, yellow skin, peeliya, piliya], source: https://medlineplus.gov/jaundice.html}
+- {code: cold_intolerance, name: Cold intolerance, lay_terms: [always feeling cold], source: https://medlineplus.gov/ency/article/003095.htm}
+- {code: heat_intolerance, name: Heat intolerance, lay_terms: [cannot tolerate heat], source: https://medlineplus.gov/ency/article/003094.htm}
+- {code: dehydration, name: Dehydration, lay_terms: [sunken eyes, very dry mouth, passing very little urine], source: https://medlineplus.gov/dehydration.html}
+
+# --- head and nervous system ---
+- {code: headache, name: Headache, lay_terms: [sir dard, head pain, head ache], source: https://medlineplus.gov/headache.html}
+- {code: severe_sudden_headache, name: Sudden severe headache, lay_terms: [worst headache of my life, thunderclap headache], source: https://medlineplus.gov/hemorrhagicstroke.html}
+- {code: one_sided_headache, name: One-sided throbbing headache, lay_terms: [half headache, adhasishi, throbbing headache], source: https://medlineplus.gov/migraine.html}
+- {code: dizziness, name: Dizziness, lay_terms: [giddiness, chakkar, lightheaded, light headed], source: https://medlineplus.gov/dizzinessandvertigo.html}
+- {code: vertigo, name: Vertigo, lay_terms: [room spinning, spinning sensation], source: https://medlineplus.gov/ency/article/001432.htm}
+- {code: fainting, name: Fainting, lay_terms: [passed out, blackout, syncope, fainted], source: https://medlineplus.gov/fainting.html}
+- {code: confusion, name: Confusion, lay_terms: [disoriented, not thinking clearly, drowsy and confused], source: https://medlineplus.gov/ency/article/003205.htm}
+- {code: seizure, name: Seizure, lay_terms: [fits, convulsions, mirgi, jhatke], source: https://medlineplus.gov/seizures.html}
+- {code: unconsciousness, name: Unconsciousness, lay_terms: [not responding, unresponsive, unconscious, behosh], source: https://medlineplus.gov/ency/article/000022.htm}
+- {code: numbness_tingling, name: Numbness and tingling, lay_terms: [pins and needles, tingling, numbness, burning feet], source: https://medlineplus.gov/ency/article/003206.htm}
+- {code: facial_droop, name: Facial droop, lay_terms: [face drooping, mouth deviated, face tilted to one side], source: https://medlineplus.gov/stroke.html}
+- {code: slurred_speech, name: Slurred speech, lay_terms: [speech unclear, difficulty speaking], source: https://medlineplus.gov/ency/article/003204.htm}
+- {code: one_sided_weakness, name: Weakness on one side of the body, lay_terms: [arm weakness, one side weak, cannot lift arm], source: https://medlineplus.gov/stroke.html}
+- {code: neck_stiffness, name: Stiff neck, lay_terms: [neck stiffness, cannot bend neck], source: https://medlineplus.gov/meningitis.html}
+- {code: photophobia, name: Sensitivity to light, lay_terms: [light hurts eyes, photophobia], source: https://medlineplus.gov/ency/article/003041.htm}
+- {code: memory_problems, name: Memory problems, lay_terms: [forgetfulness, forgetting things], source: https://medlineplus.gov/memory.html}
+- {code: tremor, name: Tremor, lay_terms: [shaking hands, trembling], source: https://medlineplus.gov/tremor.html}
+- {code: insomnia, name: Difficulty sleeping, lay_terms: [cannot sleep, sleeplessness, neend nahi aati], source: https://medlineplus.gov/insomnia.html}
+- {code: excessive_sleepiness, name: Excessive sleepiness, lay_terms: [sleepy all day, drowsiness], source: https://medlineplus.gov/ency/article/003208.htm}
+- {code: facial_weakness, name: Weakness of one side of the face, lay_terms: [cannot close one eye, face paralysis], source: https://medlineplus.gov/bellspalsy.html}
+
+# --- eyes, ears, nose and throat ---
+- {code: red_eye, name: Red eye, lay_terms: [pink eye, eye redness, aankh aana], source: https://medlineplus.gov/pinkeye.html}
+- {code: eye_discharge, name: Eye discharge, lay_terms: [sticky eyes, eyes stuck in the morning], source: https://medlineplus.gov/pinkeye.html}
+- {code: eye_pain, name: Eye pain, lay_terms: [painful eye], source: https://medlineplus.gov/ency/article/003032.htm}
+- {code: retro_orbital_pain, name: Pain behind the eyes, lay_terms: [pain behind eyes, eyeball pain], source: https://medlineplus.gov/dengue.html}
+- {code: blurred_vision, name: Blurred vision, lay_terms: [blurry vision, cloudy vision, vision problems], source: https://medlineplus.gov/visionimpairmentandblindness.html}
+- {code: ear_pain, name: Ear pain, lay_terms: [earache, kaan dard], source: https://medlineplus.gov/earinfections.html}
+- {code: ear_discharge, name: Ear discharge, lay_terms: [pus from ear, kaan behna], source: https://medlineplus.gov/earinfections.html}
+- {code: hearing_loss, name: Hearing loss, lay_terms: [cannot hear properly, blocked ear], source: https://medlineplus.gov/hearingdisordersanddeafness.html}
+- {code: tinnitus, name: Ringing in the ears, lay_terms: [ringing ears, buzzing in ears], source: https://medlineplus.gov/tinnitus.html}
+- {code: sore_throat, name: Sore throat, lay_terms: [throat pain, gala kharab, gala dard, painful swallowing], source: https://medlineplus.gov/sorethroat.html}
+- {code: runny_nose, name: Runny nose, lay_terms: [running nose, nose running, naak behna], source: https://medlineplus.gov/commoncold.html}
+- {code: nasal_congestion, name: Blocked nose, lay_terms: [stuffy nose, nose blocked, nasal congestion], source: https://medlineplus.gov/ency/article/003049.htm}
+- {code: sneezing, name: Sneezing, lay_terms: [sneezes, chheenk], source: https://medlineplus.gov/hayfever.html}
+- {code: facial_pain, name: Facial pain and pressure, lay_terms: [pain over cheeks, forehead heaviness, sinus pain], source: https://medlineplus.gov/sinusitis.html}
+- {code: loss_of_smell, name: Loss of smell or taste, lay_terms: [cannot smell, no taste], source: https://medlineplus.gov/tasteandsmelldisorders.html}
+- {code: hoarse_voice, name: Hoarse voice, lay_terms: [voice change, husky voice, lost my voice], source: https://medlineplus.gov/ency/article/003054.htm}
+- {code: mouth_ulcers, name: Mouth ulcers, lay_terms: [mouth sores, chhale, canker sores], source: https://medlineplus.gov/ency/article/000998.htm}
+- {code: bleeding_gums, name: Bleeding gums, lay_terms: [gums bleeding, blood when brushing], source: https://medlineplus.gov/ency/article/003062.htm}
+- {code: nosebleed, name: Nosebleed, lay_terms: [bleeding from nose, nakseer, nose bleeding], source: https://medlineplus.gov/noseinjuriesanddisorders.html}
+- {code: white_patches_mouth, name: White patches in the mouth, lay_terms: [white coating on tongue, oral thrush], source: https://medlineplus.gov/ency/article/000626.htm}
+- {code: neck_swelling, name: Swelling in the front of the neck, lay_terms: [goitre, thyroid swelling], source: https://medlineplus.gov/thyroiddiseases.html}
+
+# --- chest and breathing ---
+- {code: cough, name: Cough, lay_terms: [khansi, dry cough, coughing], source: https://medlineplus.gov/cough.html}
+- {code: productive_cough, name: Cough with phlegm, lay_terms: [wet cough, cough with sputum, balgam, cough with mucus], source: https://medlineplus.gov/cough.html}
+- {code: chronic_cough, name: Cough for more than two weeks, lay_terms: [cough for weeks, cough not going away, long-standing cough], source: https://medlineplus.gov/tuberculosis.html}
+- {code: coughing_blood, name: Coughing up blood, lay_terms: [blood in sputum, blood in phlegm, haemoptysis], source: https://medlineplus.gov/ency/article/003073.htm}
+- {code: breathlessness, name: Shortness of breath, lay_terms: [difficulty breathing, breathing difficulty, saans phoolna, breathless, cannot breathe, saans lene mein takleef], source: https://medlineplus.gov/breathingproblems.html}
+- {code: wheezing, name: Wheezing, lay_terms: [whistling sound when breathing, whistling chest], source: https://medlineplus.gov/ency/article/003070.htm}
+- {code: chest_tightness, name: Chest tightness, lay_terms: [tight chest, chest heaviness, pressure in chest], source: https://medlineplus.gov/chestpain.html}
+- {code: chest_pain, name: Chest pain, lay_terms: [seene mein dard, pain in chest], source: https://medlineplus.gov/chestpain.html}
+- {code: pain_spreading_arm_jaw, name: Pain spreading to the arm or jaw, lay_terms: [left arm pain, jaw pain, pain going to left arm], source: https://medlineplus.gov/heartattack.html}
+- {code: palpitations, name: Palpitations, lay_terms: [heart racing, fast heartbeat, dhadkan tez, irregular heartbeat, pounding heart], source: https://medlineplus.gov/ency/article/003081.htm}
+- {code: leg_swelling, name: Swelling of the legs, lay_terms: [swollen feet, swollen ankles, pair mein sujan, pedal oedema], source: https://medlineplus.gov/edema.html}
+- {code: calf_pain_swelling, name: Painful swelling of one calf, lay_terms: [one leg swollen, calf pain], source: https://medlineplus.gov/deepveinthrombosis.html}
+
+# --- digestive ---
+- {code: abdominal_pain, name: Abdominal pain, lay_terms: [stomach pain, pet dard, tummy ache, stomach ache], source: https://medlineplus.gov/abdominalpain.html}
+- {code: upper_abdominal_pain, name: Upper abdominal pain, lay_terms: [pain in upper stomach, epigastric pain, pain below chest bone], source: https://medlineplus.gov/abdominalpain.html}
+- {code: right_upper_abdominal_pain, name: Pain in the upper right abdomen, lay_terms: [pain under right ribs, liver pain], source: https://medlineplus.gov/gallstones.html}
+- {code: right_lower_abdominal_pain, name: Pain in the lower right abdomen, lay_terms: [pain near navel moving to right side], source: https://medlineplus.gov/appendicitis.html}
+- {code: lower_abdominal_pain, name: Lower abdominal pain, lay_terms: [pain in lower stomach, pelvic pain, pain below navel], source: https://medlineplus.gov/pelvicpain.html}
+- {code: nausea, name: Nausea, lay_terms: [feeling like vomiting, ji machalna, queasy], source: https://medlineplus.gov/nauseaandvomiting.html}
+- {code: vomiting, name: Vomiting, lay_terms: [ulti, throwing up, vomit], source: https://medlineplus.gov/nauseaandvomiting.html}
+- {code: persistent_vomiting, name: Persistent vomiting, lay_terms: [cannot keep anything down, vomiting again and again], source: https://medlineplus.gov/nauseaandvomiting.html}
+- {code: vomiting_blood, name: Vomiting blood, lay_terms: [blood in vomit, blood vomiting], source: https://medlineplus.gov/ency/article/003118.htm}
+- {code: diarrhoea, name: Diarrhoea, lay_terms: [loose motions, loose stools, running stomach, dast, watery stools, diarrhea], source: https://medlineplus.gov/diarrhea.html}
+- {code: rice_water_stools, name: Profuse watery diarrhoea, lay_terms: [rice water stools, very watery loose motions], source: https://medlineplus.gov/cholera.html}
+- {code: bloody_diarrhoea, name: Bloody diarrhoea, lay_terms: [loose motions with blood, dysentery, blood and mucus in stool, pechish], source: https://medlineplus.gov/diarrhea.html}
+- {code: blood_in_stool, name: Blood in the stool, lay_terms: [rectal bleeding, blood in potty, bleeding from back passage, blood after passing stool], source: https://medlineplus.gov/gastrointestinalbleeding.html}
+- {code: black_stool, name: Black tarry stool, lay_terms: [black stools, tarry stools], source: https://medlineplus.gov/ency/article/003130.htm}
+- {code: constipation, name: Constipation, lay_terms: [hard stools, kabz, cannot pass stool], source: https://medlineplus.gov/constipation.html}
+- {code: bloating, name: Bloating and gas, lay_terms: [gas, flatulence, stomach feels full, gas problem], source: https://medlineplus.gov/gas.html}
+- {code: heartburn, name: Heartburn, lay_terms: [acidity, burning in chest, acid reflux, sour burps, khatti dakar], source: https://medlineplus.gov/heartburn.html}
+- {code: indigestion, name: Indigestion, lay_terms: [dyspepsia, upset stomach], source: https://medlineplus.gov/indigestion.html}
+- {code: difficulty_swallowing, name: Difficulty swallowing, lay_terms: [food getting stuck, trouble swallowing], source: https://medlineplus.gov/swallowingdisorders.html}
+- {code: dark_urine, name: Dark urine, lay_terms: [tea-coloured urine, cola-coloured urine, dark yellow urine], source: https://medlineplus.gov/ency/article/003139.htm}
+- {code: anal_pain, name: Pain around the anus, lay_terms: [pain while passing stool, anal pain], source: https://medlineplus.gov/analdisorders.html}
+- {code: anal_lump, name: Lump near the anus, lay_terms: [piles, bawaseer, swelling at anus], source: https://medlineplus.gov/hemorrhoids.html}
+- {code: worms_in_stool, name: Worms in the stool, lay_terms: [worms, keede, itching at the anus at night], source: https://medlineplus.gov/pinworms.html}
+
+# --- urinary and kidney ---
+- {code: burning_urination, name: Painful urination, lay_terms: [burning while passing urine, peshab mein jalan, burning urine, painful urination], source: https://medlineplus.gov/ency/article/003145.htm}
+- {code: frequent_urination, name: Frequent urination, lay_terms: [passing urine often, baar baar peshab], source: https://medlineplus.gov/ency/article/003140.htm}
+- {code: night_urination, name: Urinating at night, lay_terms: [waking up to pass urine, nocturia], source: https://medlineplus.gov/ency/article/003141.htm}
+- {code: weak_urine_stream, name: Weak urine stream, lay_terms: [difficulty starting urine, dribbling], source: https://medlineplus.gov/enlargedprostatebph.html}
+- {code: blood_in_urine, name: Blood in the urine, lay_terms: [red urine, blood in peshab], source: https://medlineplus.gov/ency/article/003138.htm}
+- {code: reduced_urine, name: Passing little or no urine, lay_terms: [not passing urine, less urine], source: https://medlineplus.gov/ency/article/003147.htm}
+- {code: flank_pain, name: Flank pain, lay_terms: [side pain, kidney pain, pain in the side of the back], source: https://medlineplus.gov/ency/article/003113.htm}
+
+# --- women's health and pregnancy ---
+- {code: irregular_periods, name: Irregular periods, lay_terms: [irregular menses, periods not regular, delayed periods], source: https://medlineplus.gov/menstruation.html}
+- {code: heavy_periods, name: Heavy menstrual bleeding, lay_terms: [heavy periods, heavy bleeding during periods], source: https://medlineplus.gov/vaginalbleeding.html}
+- {code: painful_periods, name: Painful periods, lay_terms: [period cramps, period pain, menstrual cramps], source: https://medlineplus.gov/periodpain.html}
+- {code: vaginal_discharge, name: Abnormal vaginal discharge, lay_terms: [white discharge, safed pani, leucorrhoea], source: https://medlineplus.gov/vaginitis.html}
+- {code: vaginal_itching, name: Vaginal itching, lay_terms: [itching in private parts], source: https://medlineplus.gov/vaginitis.html}
+- {code: hirsutism, name: Excess facial or body hair, lay_terms: [unwanted facial hair, hair on chin], source: https://medlineplus.gov/hairproblems.html}
+- {code: hot_flushes, name: Hot flushes, lay_terms: [hot flashes, sudden heat in face], source: https://medlineplus.gov/menopause.html}
+- {code: bleeding_in_pregnancy, name: Bleeding in pregnancy, lay_terms: [bleeding while pregnant, spotting in pregnancy], source: https://medlineplus.gov/ency/article/003264.htm}
+- {code: swelling_face_hands_pregnancy, name: Swelling of face or hands in pregnancy, lay_terms: [puffy face in pregnancy], source: https://medlineplus.gov/ency/article/000898.htm}
+
+# --- skin and hair ---
+- {code: rash, name: Rash, lay_terms: [skin rash, red spots, daane, skin eruption], source: https://medlineplus.gov/rashes.html}
+- {code: itching, name: Itching, lay_terms: [itchy skin, khujli, kharish], source: https://medlineplus.gov/itching.html}
+- {code: hives, name: Hives, lay_terms: [urticaria, wheals, pitti], source: https://medlineplus.gov/hives.html}
+- {code: petechiae, name: Tiny red spots that do not fade, lay_terms: [pinpoint red spots, spots that do not fade when pressed, blood spots under skin], source: https://medlineplus.gov/ency/article/003235.htm}
+- {code: ring_shaped_rash, name: Ring-shaped itchy patch, lay_terms: [ringworm, daad, round itchy patch], source: https://medlineplus.gov/tineainfections.html}
+- {code: scaly_patches, name: Scaly skin patches, lay_terms: [silvery patches, dry scaly skin, thick flaky skin], source: https://medlineplus.gov/psoriasis.html}
+- {code: dry_itchy_skin, name: Dry itchy inflamed skin, lay_terms: [eczema, dry patches], source: https://medlineplus.gov/eczema.html}
+- {code: acne, name: Acne, lay_terms: [pimples, muhase, breakouts], source: https://medlineplus.gov/acne.html}
+- {code: hair_loss, name: Hair loss, lay_terms: [hair fall, baal girna, thinning hair], source: https://medlineplus.gov/hairloss.html}
+- {code: blisters, name: Blisters, lay_terms: [fluid-filled spots, water blisters], source: https://medlineplus.gov/blisters.html}
+- {code: dark_neck_patches, name: Dark velvety skin patches, lay_terms: [dark neck, darkening of neck skin], source: https://medlineplus.gov/ency/article/000852.htm}
+- {code: skin_depigmentation, name: White patches on the skin, lay_terms: [white spots, safed daag], source: https://medlineplus.gov/vitiligo.html}
+- {code: numb_skin_patch, name: Numb pale skin patch, lay_terms: [patch with no sensation, loss of feeling in a skin patch], source: https://www.who.int/news-room/fact-sheets/detail/leprosy}
+- {code: prickly_heat, name: Prickly heat rash, lay_terms: [ghamoriyan, heat rash, sweat rash], source: https://medlineplus.gov/heatillness.html}
+- {code: dandruff, name: Dandruff, lay_terms: [flaky scalp, rusi], source: https://medlineplus.gov/ency/article/000963.htm}
+- {code: skin_sores, name: Crusted skin sores, lay_terms: [honey-coloured crusts, infected sores], source: https://medlineplus.gov/impetigo.html}
+- {code: facial_pigmentation, name: Brown patches on the face, lay_terms: [melasma, chaiyan, dark facial patches], source: https://medlineplus.gov/ency/article/000836.htm}
+- {code: slow_healing_wounds, name: Slow-healing wounds, lay_terms: [wounds not healing, cuts heal slowly], source: https://medlineplus.gov/wounds.html}
+- {code: face_lip_tongue_swelling, name: "Swelling of the face, lips or tongue", lay_terms: [lip swelling, tongue swelling, swollen face, throat closing], source: https://medlineplus.gov/ency/article/000844.htm}
+
+# --- muscles, bones and joints ---
+- {code: joint_pain, name: Joint pain, lay_terms: [jodon mein dard, arthralgia, aching joints], source: https://medlineplus.gov/jointdisorders.html}
+- {code: severe_joint_pain, name: Severe joint pain, lay_terms: [cannot move joints because of pain, crippling joint pain], source: https://medlineplus.gov/chikungunya.html}
+- {code: joint_swelling, name: Joint swelling, lay_terms: [swollen joints, swollen knee], source: https://medlineplus.gov/ency/article/003262.htm}
+- {code: hot_red_joint, name: Hot red swollen joint, lay_terms: [red swollen toe, sudden painful big toe], source: https://medlineplus.gov/gout.html}
+- {code: morning_stiffness, name: Morning stiffness, lay_terms: [stiff joints in the morning], source: https://medlineplus.gov/rheumatoidarthritis.html}
+- {code: knee_pain, name: Knee pain, lay_terms: [ghutne mein dard, painful knees], source: https://medlineplus.gov/kneeinjuriesanddisorders.html}
+- {code: back_pain, name: Back pain, lay_terms: [kamar dard, lower back pain, backache], source: https://medlineplus.gov/backpain.html}
+- {code: neck_pain, name: Neck pain, lay_terms: [gardan dard, stiff and painful neck], source: https://medlineplus.gov/neckinjuriesanddisorders.html}
+- {code: shoulder_pain_stiffness, name: Shoulder pain and stiffness, lay_terms: [frozen shoulder, cannot raise arm], source: https://medlineplus.gov/shoulderinjuriesanddisorders.html}
+- {code: muscle_cramps, name: Muscle cramps, lay_terms: [leg cramps, nas chadhna], source: https://medlineplus.gov/musclecramps.html}
+- {code: bone_pain, name: Bone pain, lay_terms: [aching bones, haddi mein dard], source: https://medlineplus.gov/ency/article/003180.htm}
+- {code: hand_numbness_night, name: Hand numbness at night, lay_terms: [tingling fingers at night, numb hand], source: https://medlineplus.gov/carpaltunnelsyndrome.html}
+
+# --- mind and mood ---
+- {code: low_mood, name: Low mood, lay_terms: [feeling sad, depressed, udaas, feeling low], source: https://medlineplus.gov/depression.html}
+- {code: loss_of_interest, name: Loss of interest, lay_terms: [nothing feels enjoyable, no interest in anything], source: https://medlineplus.gov/depression.html}
+- {code: anxiety, name: Anxiety, lay_terms: [worry, nervousness, tension, ghabrahat, restlessness], source: https://medlineplus.gov/anxiety.html}
+- {code: panic_attack, name: Panic attack, lay_terms: [sudden intense fear, panic], source: https://medlineplus.gov/panicdisorder.html}
+- {code: suicidal_thoughts, name: Thoughts of suicide or self-harm, lay_terms: [want to die, thoughts of ending my life, want to hurt myself, kill myself], source: https://medlineplus.gov/suicide.html}
+- {code: irritability, name: Irritability, lay_terms: [easily angry, short-tempered], source: https://medlineplus.gov/depression.html}
+- {code: poor_concentration, name: Poor concentration, lay_terms: [cannot focus, trouble concentrating], source: https://medlineplus.gov/depression.html}
+- {code: craving_withdrawal, name: Cravings and withdrawal, lay_terms: [cannot stop drinking, need a drink in the morning, cannot quit tobacco], source: https://medlineplus.gov/alcoholusedisorderaud.html}
+
+# --- injuries and exposures ---
+- {code: animal_bite, name: Animal bite, lay_terms: [dog bite, monkey bite, cat bite, bitten by a dog], source: https://medlineplus.gov/animalbites.html}
+- {code: snake_bite, name: Snake bite, lay_terms: [bitten by a snake, saanp ne kaata], source: https://medlineplus.gov/ency/article/000031.htm}
+- {code: heat_exposure, name: Prolonged heat exposure, lay_terms: [worked in the sun, heat wave, loo lagna], source: https://medlineplus.gov/heatillness.html}
+- {code: severe_bleeding, name: Heavy bleeding, lay_terms: [bleeding will not stop, spurting blood, uncontrolled bleeding], source: https://medlineplus.gov/bleeding.html}

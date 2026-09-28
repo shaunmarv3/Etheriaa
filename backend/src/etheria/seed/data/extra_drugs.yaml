@@ -1,0 +1,31 @@
+# India-common drugs that DDInter does not list (checked against the 1,939
+# DDInter names on 2026-09-28). Each becomes a (:Drug {source: "curated"}) node
+# with no DDInter id, so it can join drug classes and the class-level safety net
+# (aceclofenac is an NSAID, so NSAID + warfarin covers it). DDInter-sourced
+# pairs never exist for these: other combinations are reported "not found".
+# Source: the WHO ATC/DDD index entry for the drug's ATC code.
+# OWNER REVIEW REQUIRED (spec 6.5).
+- {name: Aceclofenac, atc: M01AB16, source: "https://atcddd.fhi.no/atc_ddd_index/?code=M01AB16"}
+- {name: Nimesulide, atc: M01AX17, source: "https://atcddd.fhi.no/atc_ddd_index/?code=M01AX17"}
+- {name: Etoricoxib, atc: M01AH05, source: "https://atcddd.fhi.no/atc_ddd_index/?code=M01AH05"}
+- {name: Roxithromycin, atc: J01FA06, source: "https://atcddd.fhi.no/atc_ddd_index/?code=J01FA06"}
+- {name: Ornidazole, atc: P01AB03, source: "https://atcddd.fhi.no/atc_ddd_index/?code=P01AB03"}
+- {name: Cilnidipine, atc: C08CA14, source: "https://atcddd.fhi.no/atc_ddd_index/?code=C08CA14"}
+- {name: Gliclazide, atc: A10BB09, source: "https://atcddd.fhi.no/atc_ddd_index/?code=A10BB09"}
+- {name: Vildagliptin, atc: A10BH02, source: "https://atcddd.fhi.no/atc_ddd_index/?code=A10BH02"}
+- {name: Teneligliptin, atc: A10BH08, source: "https://atcddd.fhi.no/atc_ddd_index/?code=A10BH08"}
+- {name: Carbimazole, atc: H03BB01, source: "https://atcddd.fhi.no/atc_ddd_index/?code=H03BB01"}
+- {name: Domperidone, atc: A03FA03, source: "https://atcddd.fhi.no/atc_ddd_index/?code=A03FA03"}
+# Psyllium: the ATC index lists it as "ispaghula (psylla seeds)".
+- {name: Psyllium, atc: A06AC01, source: "https://atcddd.fhi.no/atc_ddd_index/?code=A06AC01"}
+- {name: Sodium picosulfate, atc: A06AB08, source: "https://atcddd.fhi.no/atc_ddd_index/?code=A06AB08"}
+# Hyoscine butylbromide: the ATC index lists it as "butylscopolamine".
+- {name: Hyoscine butylbromide, atc: A03BB01, source: "https://atcddd.fhi.no/atc_ddd_index/?code=A03BB01"}
+- {name: Mebeverine, atc: A03AA04, source: "https://atcddd.fhi.no/atc_ddd_index/?code=A03AA04"}
+- {name: Drotaverine, atc: A03AD02, source: "https://atcddd.fhi.no/atc_ddd_index/?code=A03AD02"}
+- {name: Doxofylline, atc: R03DA11, source: "https://atcddd.fhi.no/atc_ddd_index/?code=R03DA11"}
+- {name: Dosulepin, atc: N06AA16, source: "https://atcddd.fhi.no/atc_ddd_index/?code=N06AA16"}
+- {name: Etizolam, atc: N05BA19, source: "https://atcddd.fhi.no/atc_ddd_index/?code=N05BA19"}
+- {name: Betahistine, atc: N07CA01, source: "https://atcddd.fhi.no/atc_ddd_index/?code=N07CA01"}
+- {name: Cinnarizine, atc: N07CA02, source: "https://atcddd.fhi.no/atc_ddd_index/?code=N07CA02"}
+- {name: Thiamine, atc: A11DA01, source: "https://atcddd.fhi.no/atc_ddd_index/?code=A11DA01"}

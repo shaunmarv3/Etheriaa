@@ -1,0 +1,231 @@
+# The critical-interaction safety net (spec 6.1, 6.5). DDInter misses some
+# dangerous combinations (sertraline + tramadol is absent on 2026-09-28), so these
+# pairs are loaded as INTERACTS_WITH {source: "critical"} edges. A class side
+# expands to every member drug (drug_classes.yaml). An edge only ever *adds* a
+# warning; the absence of an edge is reported as "not found", never as safe.
+# Each entry cites a public reference that describes the interaction: an NHS
+# medicines page that names it, or an openFDA drug-label query that returns HTTP
+# 200 only when that label section contains the term (checked by tests/live).
+# OWNER REVIEW REQUIRED (spec 6.5).
+
+# --- serotonin syndrome ---
+- a: {class: ssri}
+  b: {class: maoi}
+  severity: Major
+  rationale: Serotonin syndrome; SSRIs must not be combined with MAO inhibitors.
+  source: 'https://api.fda.gov/drug/label.json?search=openfda.generic_name:"sertraline"+AND+contraindications:"MAOI"&limit=1'
+- a: {class: ssri}
+  b: {class: serotonergic_opioid}
+  severity: Major
+  rationale: Serotonin syndrome (for example sertraline with tramadol).
+  source: 'https://api.fda.gov/drug/label.json?search=openfda.generic_name:"sertraline"+AND+drug_interactions:"tramadol"&limit=1'
+- a: {class: snri}
+  b: {class: serotonergic_opioid}
+  severity: Major
+  rationale: Serotonin syndrome.
+  source: 'https://api.fda.gov/drug/label.json?search=openfda.generic_name:"venlafaxine"+AND+drug_interactions:"tramadol"&limit=1'
+- a: {class: tca}
+  b: {class: serotonergic_opioid}
+  severity: Major
+  rationale: Serotonin syndrome and lowered seizure threshold.
+  source: 'https://api.fda.gov/drug/label.json?search=openfda.generic_name:"tramadol"+AND+warnings_and_cautions:"tricyclic"&limit=1'
+- a: {class: ssri}
+  b: {class: linezolid}
+  severity: Major
+  rationale: Serotonin syndrome; linezolid is a weak MAO inhibitor.
+  source: 'https://api.fda.gov/drug/label.json?search=openfda.generic_name:"linezolid"+AND+warnings_and_cautions:"serotonergic"&limit=1'
+- a: {class: snri}
+  b: {class: maoi}
+  severity: Major
+  rationale: Serotonin syndrome.
+  source: 'https://api.fda.gov/drug/label.json?search=openfda.generic_name:"duloxetine"+AND+contraindications:"MAOI"&limit=1'
+- a: {class: tca}
+  b: {class: maoi}
+  severity: Major
+  rationale: Serotonin syndrome and hypertensive reactions.
+  source: 'https://api.fda.gov/drug/label.json?search=openfda.generic_name:"amitriptyline"+AND+contraindications:"monoamine oxidase"&limit=1'
+- a: {class: serotonergic_opioid}
+  b: {class: maoi}
+  severity: Major
+  rationale: Serotonin syndrome.
+  source: 'https://api.fda.gov/drug/label.json?search=openfda.generic_name:"tramadol"+AND+warnings_and_cautions:"MAO"&limit=1'
+- a: {class: triptan}
+  b: {class: maoi}
+  severity: Major
+  rationale: Raised triptan levels and serotonin toxicity.
+  source: 'https://api.fda.gov/drug/label.json?search=openfda.generic_name:"sumatriptan"+AND+contraindications:"MAO-A"&limit=1'
+- a: {class: ssri}
+  b: {class: triptan}
+  severity: Moderate
+  rationale: Risk of serotonin syndrome.
+  source: 'https://api.fda.gov/drug/label.json?search=openfda.generic_name:"sumatriptan"+AND+warnings_and_cautions:"SSRIs"&limit=1'
+
+# --- bleeding ---
+- a: {class: vitamin_k_antagonist}
+  b: {class: nsaid}
+  severity: Major
+  rationale: Serious bleeding, especially from the gut.
+  source: 'https://api.fda.gov/drug/label.json?search=openfda.generic_name:"warfarin"+AND+drug_interactions:"nonsteroidal"&limit=1'
+- a: {class: anticoagulant}
+  b: {class: nsaid}
+  severity: Major
+  rationale: Serious bleeding.
+  source: 'https://api.fda.gov/drug/label.json?search=openfda.generic_name:"apixaban"+AND+warnings_and_cautions:"NSAIDs"&limit=1'
+- a: {class: anticoagulant}
+  b: {class: antiplatelet}
+  severity: Major
+  rationale: Serious bleeding; only combined under specialist care.
+  source: 'https://api.fda.gov/drug/label.json?search=openfda.generic_name:"rivaroxaban"+AND+drug_interactions:"clopidogrel"&limit=1'
+- a: {class: ssri}
+  b: {class: anticoagulant}
+  severity: Moderate
+  rationale: SSRIs impair platelet function; higher bleeding risk.
+  source: 'https://api.fda.gov/drug/label.json?search=openfda.generic_name:"sertraline"+AND+drug_interactions:"warfarin"&limit=1'
+- a: {class: ssri}
+  b: {class: nsaid}
+  severity: Moderate
+  rationale: Higher risk of stomach bleeding.
+  source: 'https://api.fda.gov/drug/label.json?search=openfda.generic_name:"sertraline"+AND+warnings_and_cautions:"NSAIDs"&limit=1'
+- a: {class: vitamin_k_antagonist}
+  b: {class: azole_antifungal}
+  severity: Major
+  rationale: Azoles raise warfarin levels; bleeding.
+  source: 'https://api.fda.gov/drug/label.json?search=openfda.generic_name:"warfarin"+AND+drug_interactions:"fluconazole"&limit=1'
+- a: {class: vitamin_k_antagonist}
+  b: {class: nitroimidazole}
+  severity: Major
+  rationale: Metronidazole raises warfarin levels; bleeding.
+  source: 'https://api.fda.gov/drug/label.json?search=openfda.generic_name:"warfarin"+AND+drug_interactions:"metronidazole"&limit=1'
+- a: {class: vitamin_k_antagonist}
+  b: {class: trimethoprim}
+  severity: Major
+  rationale: Co-trimoxazole raises warfarin levels; bleeding.
+  source: 'https://api.fda.gov/drug/label.json?search=openfda.generic_name:"warfarin"+AND+drug_interactions:"cotrimoxazole"&limit=1'
+- a: {class: vitamin_k_antagonist}
+  b: {class: rifamycin}
+  severity: Major
+  rationale: Rifampicin sharply lowers warfarin levels; clots.
+  source: 'https://api.fda.gov/drug/label.json?search=openfda.generic_name:"warfarin"+AND+drug_interactions:"rifampin"&limit=1'
+
+# --- potassium and kidneys ---
+- a: {class: ace_inhibitor}
+  b: {class: potassium_sparing_diuretic}
+  severity: Major
+  rationale: Dangerous rise in blood potassium.
+  source: https://www.nhs.uk/medicines/ramipril/taking-ramipril-with-other-medicines-and-herbal-supplements/
+- a: {class: arb}
+  b: {class: potassium_sparing_diuretic}
+  severity: Major
+  rationale: Dangerous rise in blood potassium.
+  source: https://www.nhs.uk/medicines/losartan/
+- a: {class: potassium_sparing_diuretic}
+  b: {class: potassium_supplement}
+  severity: Major
+  rationale: Dangerous rise in blood potassium.
+  source: https://www.nhs.uk/medicines/spironolactone/
+- a: {class: ace_inhibitor}
+  b: {class: potassium_supplement}
+  severity: Moderate
+  rationale: Rise in blood potassium.
+  source: https://www.nhs.uk/medicines/ramipril/taking-ramipril-with-other-medicines-and-herbal-supplements/
+
+# --- lithium ---
+- a: {class: lithium}
+  b: {class: nsaid}
+  severity: Major
+  rationale: NSAIDs raise lithium levels; toxicity.
+  source: https://www.nhs.uk/medicines/lithium/taking-lithium-with-other-medicines-and-herbal-supplements/
+- a: {class: lithium}
+  b: {class: ace_inhibitor}
+  severity: Major
+  rationale: Raised lithium levels; toxicity.
+  source: https://www.nhs.uk/medicines/lithium/taking-lithium-with-other-medicines-and-herbal-supplements/
+- a: {class: lithium}
+  b: {class: arb}
+  severity: Major
+  rationale: Raised lithium levels; toxicity.
+  source: https://www.nhs.uk/medicines/losartan/
+- a: {class: lithium}
+  b: {class: thiazide}
+  severity: Major
+  rationale: Raised lithium levels; toxicity.
+  source: https://www.nhs.uk/medicines/lithium/taking-lithium-with-other-medicines-and-herbal-supplements/
+
+# --- heart ---
+- a: {class: nitrate}
+  b: {class: pde5_inhibitor}
+  severity: Major
+  rationale: Severe, possibly fatal drop in blood pressure.
+  source: 'https://api.fda.gov/drug/label.json?search=openfda.generic_name:"sildenafil"+AND+contraindications:"nitrates"&limit=1'
+- a: {class: digoxin}
+  b: {class: amiodarone}
+  severity: Major
+  rationale: Amiodarone raises digoxin levels; toxicity.
+  source: https://www.nhs.uk/medicines/digoxin/taking-digoxin-with-other-medicines-and-herbal-supplements/
+- a: {class: cyp3a4_statin}
+  b: {class: strong_cyp3a4_macrolide}
+  severity: Major
+  rationale: Raised statin levels; muscle breakdown (rhabdomyolysis).
+  source: 'https://api.fda.gov/drug/label.json?search=openfda.generic_name:"simvastatin"+AND+contraindications:"clarithromycin"&limit=1'
+- a: {class: cyp3a4_statin}
+  b: {class: strong_cyp3a4_azole}
+  severity: Major
+  rationale: Raised statin levels; muscle breakdown (rhabdomyolysis).
+  source: https://www.nhs.uk/medicines/simvastatin/
+- a: {class: clopidogrel}
+  b: {class: cyp2c19_ppi}
+  severity: Moderate
+  rationale: Omeprazole and esomeprazole reduce clopidogrel's effect.
+  source: https://www.nhs.uk/medicines/clopidogrel/taking-clopidogrel-with-other-medicines-and-herbal-supplements/
+
+# --- other ---
+- a: {class: opioid}
+  b: {class: benzodiazepine}
+  severity: Major
+  rationale: Profound sedation and slowed breathing; can be fatal.
+  source: 'https://api.fda.gov/drug/label.json?search=openfda.generic_name:"oxycodone"+AND+boxed_warning:"benzodiazepines"&limit=1'
+- a: {class: colchicine}
+  b: {class: strong_cyp3a4_macrolide}
+  severity: Major
+  rationale: Raised colchicine levels; toxicity.
+  source: 'https://api.fda.gov/drug/label.json?search=openfda.generic_name:"colchicine"+AND+drug_interactions:"clarithromycin"&limit=1'
+- a: {drug: Methotrexate}
+  b: {class: trimethoprim}
+  severity: Major
+  rationale: Bone-marrow suppression.
+  source: https://www.nhs.uk/medicines/methotrexate/taking-methotrexate-with-other-medicines-and-herbal-supplements/
+- a: {drug: Azathioprine}
+  b: {class: xanthine_oxidase_inhibitor}
+  severity: Major
+  rationale: Allopurinol raises azathioprine levels; bone-marrow suppression.
+  source: 'https://api.fda.gov/drug/label.json?search=openfda.generic_name:"azathioprine"+AND+drug_interactions:"allopurinol"&limit=1'
+- a: {drug: Ciprofloxacin}
+  b: {class: theophylline}
+  severity: Major
+  rationale: Ciprofloxacin raises theophylline levels; seizures and arrhythmia.
+  source: https://www.nhs.uk/medicines/ciprofloxacin/taking-or-using-ciprofloxacin-with-other-medicines-and-herbal-supplements/
+- a: {drug: Ciprofloxacin}
+  b: {drug: Tizanidine}
+  severity: Major
+  rationale: Ciprofloxacin greatly raises tizanidine levels; severe low blood pressure.
+  source: https://www.nhs.uk/medicines/ciprofloxacin/taking-or-using-ciprofloxacin-with-other-medicines-and-herbal-supplements/
+- a: {class: rifamycin}
+  b: {class: hormonal_contraceptive}
+  severity: Major
+  rationale: Rifampicin makes hormonal contraception fail.
+  source: 'https://api.fda.gov/drug/label.json?search=openfda.generic_name:"rifampin"+AND+drug_interactions:"contraceptives"&limit=1'
+- a: {class: enzyme_inducing_anticonvulsant}
+  b: {class: hormonal_contraceptive}
+  severity: Major
+  rationale: Enzyme inducers make hormonal contraception fail.
+  source: https://www.nhs.uk/medicines/carbamazepine/
+- a: {class: thyroid_hormone}
+  b: {class: iron_supplement}
+  severity: Moderate
+  rationale: Iron reduces levothyroxine absorption; take them at least 4 hours apart.
+  source: https://www.nhs.uk/medicines/levothyroxine/
+- a: {class: thyroid_hormone}
+  b: {class: calcium_supplement}
+  severity: Moderate
+  rationale: Calcium reduces levothyroxine absorption; take them at least 4 hours apart.
+  source: https://www.nhs.uk/medicines/levothyroxine/

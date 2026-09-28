@@ -1,0 +1,143 @@
+# Triage rule table (spec 4.6). Rules can only RAISE the level decided by the
+# model; a failure defaults to YELLOW. Phrases are matched case-insensitively
+# on the user's message (matcher arrives with the triage node in M4).
+# A rule fires on any `any_of` phrase, or when every `all_of` group has a hit.
+# RED -> the stream opens with the India emergency block (112, or 108 for an
+# ambulance) before any model token; `helpline: tele_manas` adds Tele-MANAS
+# (14416 or 1-800-891-4416).
+# Seeded from v1's rule clusters (app/llm/triage.py) and re-curated for India
+# (Hinglish lay terms, dengue warning signs, snake bite, heat stroke).
+# Sources: WHO dengue warning signs; NHS / MedlinePlus emergency symptom pages.
+# OWNER REVIEW REQUIRED (spec 6.5).
+
+# ---------------- RED: emergency ----------------
+- id: cardiac_chest_pain
+  level: RED
+  category: cardiac
+  all_of:
+    - ["chest pain", "chest tightness", "pressure in chest", "seene mein dard", "chest heaviness"]
+    - ["sweating", "left arm", "arm pain", "jaw", "breathless", "shortness of breath", "vomiting", "fainted", "nausea"]
+  note: Chest pain with cardiac features.
+- id: cardiac_arrest
+  level: RED
+  category: cardiac
+  any_of: ["not breathing", "no pulse", "cardiac arrest", "collapsed and not responding"]
+- id: stroke_fast
+  level: RED
+  category: stroke
+  any_of: ["face drooping", "facial droop", "mouth deviated", "slurred speech", "cannot speak properly", "arm weakness", "weakness on one side", "one side weak", "sudden confusion", "lakwa", "paralysis attack"]
+  note: FAST signs (Face, Arm, Speech, Time).
+- id: thunderclap_headache
+  level: RED
+  category: stroke
+  any_of: ["worst headache of my life", "sudden severe headache", "thunderclap headache"]
+- id: breathing_distress
+  level: RED
+  category: breathing
+  any_of: ["can't breathe", "cannot breathe", "unable to breathe", "struggling to breathe", "gasping", "blue lips", "bluish lips", "too breathless to speak", "saans nahi aa rahi"]
+- id: anaphylaxis
+  level: RED
+  category: anaphylaxis
+  any_of: ["anaphylaxis", "throat closing", "throat is closing", "tongue swelling", "swollen tongue", "allergic shock"]
+- id: anaphylaxis_airway
+  level: RED
+  category: anaphylaxis
+  all_of:
+    - ["allergic reaction", "allergy", "hives", "lip swelling", "face swelling", "swollen lips", "swollen face"]
+    - ["breathing", "breathe", "throat", "swallow", "wheezing"]
+- id: seizure_unconscious
+  level: RED
+  category: seizure_unconscious
+  any_of: ["unconscious", "not responding", "unresponsive", "behosh", "seizure", "convulsion", "fits", "mirgi ka daura"]
+- id: severe_bleeding
+  level: RED
+  category: bleeding
+  any_of: ["bleeding won't stop", "bleeding will not stop", "can't stop bleeding", "cannot stop the bleeding", "spurting blood", "uncontrolled bleeding", "vomiting blood", "blood in vomit", "coughing up a lot of blood"]
+- id: pregnancy_bleeding_or_eclampsia
+  level: RED
+  category: bleeding
+  all_of:
+    - ["pregnant", "pregnancy"]
+    - ["bleeding", "fits", "seizure", "severe headache", "blurred vision", "baby not moving", "water broke"]
+- id: self_harm
+  level: RED
+  category: self_harm
+  helpline: tele_manas
+  any_of: ["kill myself", "end my life", "want to die", "suicide", "suicidal", "hurt myself", "self-harm", "self harm", "took all my pills", "overdose on purpose", "cut myself", "no reason to live", "marna chahta", "marna chahti"]
+- id: meningitis_signs
+  level: RED
+  category: meningitis
+  all_of:
+    - ["fever", "bukhar", "temperature"]
+    - ["stiff neck", "neck stiffness", "cannot bend my neck", "rash that does not fade", "rash that doesn't fade", "confused", "drowsy"]
+- id: dengue_warning_signs
+  level: RED
+  category: dengue_warning
+  all_of:
+    - ["dengue", "platelet", "platelets"]
+    - ["severe abdominal pain", "stomach pain", "persistent vomiting", "vomiting again and again", "bleeding gums", "nose bleeding", "blood in stool", "black stool", "restless", "very tired", "drowsy", "cold hands"]
+  note: WHO dengue warning signs.
+- id: diabetic_emergency
+  level: RED
+  category: metabolic
+  all_of:
+    - ["sugar", "diabetes", "diabetic", "glucose"]
+    - ["unconscious", "not responding", "confused", "seizure", "fits", "very low", "deep breathing", "fruity breath"]
+- id: snake_bite
+  level: RED
+  category: envenomation
+  any_of: ["snake bite", "snakebite", "bitten by a snake", "saanp ne kaata"]
+- id: heat_stroke
+  level: RED
+  category: heat
+  all_of:
+    - ["heat", "sun", "loo", "heatwave", "heat wave"]
+    - ["confused", "unconscious", "fainted", "not sweating", "seizure", "very high fever"]
+- id: poisoning
+  level: RED
+  category: poisoning
+  any_of: ["swallowed poison", "drank pesticide", "consumed pesticide", "poisoning", "kerosene swallowed", "rat poison"]
+
+# ---------------- YELLOW: see a doctor soon ----------------
+- id: chest_pain_alone
+  level: YELLOW
+  category: cardiac
+  any_of: ["chest pain", "chest tightness", "seene mein dard"]
+- id: high_fever
+  level: YELLOW
+  category: fever
+  any_of: ["103", "104", "105", "high fever", "39.5", "40 degrees"]
+  note: Numbers only match together with fever terms in the M4 matcher context.
+- id: fever_many_days
+  level: YELLOW
+  category: fever
+  all_of:
+    - ["fever", "bukhar"]
+    - ["3 days", "three days", "4 days", "5 days", "a week", "7 days", "for days"]
+- id: persistent_vomiting
+  level: YELLOW
+  category: dehydration
+  any_of: ["vomiting for a day", "cannot keep anything down", "can't keep anything down", "vomiting again and again"]
+- id: dehydration_signs
+  level: YELLOW
+  category: dehydration
+  any_of: ["not passed urine", "no urine", "very little urine", "sunken eyes", "very dry mouth"]
+- id: blood_in_stool_or_urine
+  level: YELLOW
+  category: bleeding
+  any_of: ["blood in stool", "blood in urine", "black stool", "blood in potty", "rectal bleeding"]
+- id: animal_bite
+  level: YELLOW
+  category: rabies_risk
+  any_of: ["dog bite", "dog bit", "monkey bite", "cat bite", "bitten by a dog", "bitten by a monkey"]
+  note: Rabies post-exposure prophylaxis the same day.
+- id: jaundice
+  level: YELLOW
+  category: liver
+  any_of: ["yellow eyes", "yellow skin", "jaundice", "peeliya", "piliya"]
+- id: pregnancy_symptom
+  level: YELLOW
+  category: pregnancy
+  all_of:
+    - ["pregnant", "pregnancy"]
+    - ["pain", "fever", "swelling", "headache", "vomiting"]

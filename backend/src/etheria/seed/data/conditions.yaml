@@ -1,0 +1,1253 @@
+# India-common conditions (spec 6.1, 6.5). Each entry: an ICD-10-CM code (the
+# seeder verifies it against NLM Clinical Tables and stores the official name),
+# associated symptoms with weights in (0, 1] (how characteristic the symptom is),
+# first-line treatment CLASSES (never a drug choice, never a dose), self-care
+# and red flags, and a public source. Symptom codes -> symptoms.yaml; classes ->
+# drug_classes.yaml. body_systems -> seed/curated.py BODY_SYSTEMS.
+# OWNER REVIEW REQUIRED (spec 6.5): drafted 2026-09-28, not yet reviewed.
+
+# ===================== infections =====================
+- icd10: A90
+  name: Dengue fever
+  synonyms: ["dengue", "break-bone fever"]
+  body_systems: [Infectious]
+  india_common: true
+  symptoms: {fever: 1.0, high_fever: 0.8, headache: 0.7, retro_orbital_pain: 0.8, body_ache: 0.8, joint_pain: 0.6, rash: 0.5, nausea: 0.5, vomiting: 0.4, fatigue: 0.6}
+  first_line: [paracetamol, oral_rehydration]
+  self_care: ["Rest and drink plenty of fluids", "Use paracetamol for fever; avoid ibuprofen and aspirin because they raise bleeding risk", "Get a platelet count checked as advised by a doctor"]
+  red_flags: ["Severe abdominal pain", "Persistent vomiting", "Bleeding from gums or nose", "Blood in vomit or stool", "Restlessness or extreme tiredness", "Fever falling but feeling worse"]
+  source: https://www.who.int/news-room/fact-sheets/detail/dengue-and-severe-dengue
+- icd10: A91
+  name: Severe dengue (dengue haemorrhagic fever)
+  synonyms: ["dengue haemorrhagic fever", "dengue shock syndrome", "DHF"]
+  body_systems: [Infectious, Haematological]
+  india_common: true
+  symptoms: {fever: 0.8, abdominal_pain: 0.8, persistent_vomiting: 0.8, bleeding_gums: 0.7, nosebleed: 0.6, petechiae: 0.7, vomiting_blood: 0.6, black_stool: 0.5, fatigue: 0.6, confusion: 0.4}
+  first_line: [oral_rehydration]
+  self_care: ["This needs hospital care now"]
+  red_flags: ["Any bleeding", "Cold clammy skin", "Drowsiness or confusion", "Passing very little urine"]
+  source: https://www.who.int/news-room/fact-sheets/detail/dengue-and-severe-dengue
+- icd10: B50.9
+  name: Falciparum malaria
+  synonyms: ["malaria", "P. falciparum malaria", "malignant malaria"]
+  body_systems: [Infectious]
+  india_common: true
+  symptoms: {fever: 1.0, high_fever: 0.8, chills: 0.9, headache: 0.7, body_ache: 0.7, excessive_sweating: 0.5, nausea: 0.3, jaundice: 0.2}
+  first_line: [antimalarial, paracetamol]
+  self_care: ["Get a blood test for malaria the same day", "Complete the full course prescribed under the national programme", "Sleep under a mosquito net"]
+  red_flags: ["Confusion or drowsiness", "Seizures", "Yellow eyes", "Dark urine", "Breathing difficulty"]
+  source: https://www.who.int/news-room/fact-sheets/detail/malaria
+- icd10: B51.9
+  name: Vivax malaria
+  synonyms: ["P. vivax malaria", "benign tertian malaria"]
+  body_systems: [Infectious]
+  india_common: true
+  symptoms: {fever: 1.0, chills: 0.9, headache: 0.6, body_ache: 0.6, fatigue: 0.5, nausea: 0.3}
+  first_line: [antimalarial, paracetamol]
+  self_care: ["Get a blood test for malaria", "Complete the full course including the relapse-prevention medicine", "Use mosquito nets and repellents"]
+  red_flags: ["Confusion", "Yellow eyes", "Breathing difficulty", "Very little urine"]
+  source: https://www.who.int/news-room/fact-sheets/detail/malaria
+- icd10: A01.00
+  name: Typhoid fever
+  synonyms: ["typhoid", "enteric fever"]
+  body_systems: [Infectious, Gastrointestinal]
+  india_common: true
+  symptoms: {fever: 1.0, headache: 0.6, abdominal_pain: 0.6, fatigue: 0.7, loss_of_appetite: 0.6, constipation: 0.4, diarrhoea: 0.4, rash: 0.2}
+  first_line: [cephalosporin, macrolide, paracetamol]
+  self_care: ["Drink safe boiled or filtered water", "Eat freshly cooked food", "Complete the full antibiotic course"]
+  red_flags: ["Severe abdominal pain", "Blood in stool", "Confusion", "Fever lasting more than a week despite treatment"]
+  source: https://www.who.int/news-room/fact-sheets/detail/typhoid
+- icd10: A92.0
+  name: Chikungunya
+  synonyms: ["chikungunya fever"]
+  body_systems: [Infectious, Musculoskeletal]
+  india_common: true
+  symptoms: {fever: 0.9, severe_joint_pain: 1.0, joint_pain: 0.9, joint_swelling: 0.6, rash: 0.5, headache: 0.5, body_ache: 0.6, fatigue: 0.5}
+  first_line: [paracetamol, oral_rehydration]
+  self_care: ["Rest and drink fluids", "Use paracetamol; avoid NSAIDs until dengue is ruled out", "Gentle joint movement once the fever settles"]
+  red_flags: ["Bleeding", "Confusion", "Severe vomiting"]
+  source: https://www.who.int/news-room/fact-sheets/detail/chikungunya
+- icd10: A15.0
+  name: Pulmonary tuberculosis
+  synonyms: ["TB", "tuberculosis", "tb of the lungs"]
+  body_systems: [Infectious, Respiratory]
+  india_common: true
+  symptoms: {chronic_cough: 1.0, productive_cough: 0.7, fever: 0.6, night_sweats: 0.7, weight_loss: 0.8, loss_of_appetite: 0.6, coughing_blood: 0.5, fatigue: 0.6, chest_pain: 0.3}
+  first_line: [antitubercular]
+  self_care: ["Get a sputum test at a government health centre (free under the national TB programme)", "Take every dose of the full course", "Cover your mouth when coughing"]
+  red_flags: ["Coughing up large amounts of blood", "Severe breathlessness"]
+  source: https://www.who.int/news-room/fact-sheets/detail/tuberculosis
+- icd10: A27.9
+  name: Leptospirosis
+  synonyms: ["rat fever", "weil disease"]
+  body_systems: [Infectious]
+  india_common: true
+  symptoms: {fever: 0.9, high_fever: 0.6, headache: 0.7, body_ache: 0.9, red_eye: 0.5, jaundice: 0.4, reduced_urine: 0.3, chills: 0.6}
+  first_line: [tetracycline, penicillin]
+  self_care: ["See a doctor early, especially after wading through floodwater", "Avoid walking barefoot in floodwater"]
+  red_flags: ["Yellow eyes", "Passing little urine", "Coughing blood", "Breathlessness"]
+  source: https://www.who.int/news-room/fact-sheets/detail/leptospirosis
+- icd10: A75.3
+  name: Scrub typhus
+  synonyms: ["tsutsugamushi disease"]
+  body_systems: [Infectious]
+  india_common: true
+  symptoms: {fever: 1.0, headache: 0.8, body_ache: 0.7, swollen_lymph_nodes: 0.5, rash: 0.4, cough: 0.3, confusion: 0.2}
+  first_line: [tetracycline, macrolide]
+  self_care: ["Look for a small black scab (eschar) on the skin and tell the doctor", "See a doctor early; it responds well to prompt treatment"]
+  red_flags: ["Breathlessness", "Confusion", "Passing little urine"]
+  source: https://www.cdc.gov/typhus/scrub/index.html
+- icd10: B15.9
+  name: Hepatitis A
+  synonyms: ["infectious hepatitis", "viral jaundice"]
+  body_systems: [Infectious, Hepatobiliary]
+  india_common: true
+  symptoms: {jaundice: 1.0, dark_urine: 0.8, fever: 0.5, nausea: 0.7, loss_of_appetite: 0.8, fatigue: 0.7, right_upper_abdominal_pain: 0.5, vomiting: 0.4}
+  first_line: [oral_rehydration]
+  self_care: ["Rest", "Avoid alcohol completely", "Avoid medicines not prescribed by a doctor", "Drink safe water"]
+  red_flags: ["Confusion or drowsiness", "Vomiting that will not stop", "Bleeding or bruising"]
+  source: https://www.who.int/news-room/fact-sheets/detail/hepatitis-a
+- icd10: B17.2
+  name: Hepatitis E
+  synonyms: ["hepatitis e virus infection"]
+  body_systems: [Infectious, Hepatobiliary]
+  india_common: true
+  symptoms: {jaundice: 1.0, dark_urine: 0.8, fever: 0.5, nausea: 0.7, loss_of_appetite: 0.8, fatigue: 0.7, right_upper_abdominal_pain: 0.4}
+  first_line: [oral_rehydration]
+  self_care: ["Rest", "Avoid alcohol", "Drink safe water"]
+  red_flags: ["Pregnancy with jaundice", "Confusion", "Bleeding"]
+  source: https://www.who.int/news-room/fact-sheets/detail/hepatitis-e
+- icd10: B16.9
+  name: Acute hepatitis B
+  synonyms: ["hepatitis b"]
+  body_systems: [Infectious, Hepatobiliary]
+  india_common: true
+  symptoms: {jaundice: 0.9, dark_urine: 0.7, fatigue: 0.8, nausea: 0.6, loss_of_appetite: 0.6, right_upper_abdominal_pain: 0.5, joint_pain: 0.3}
+  first_line: []
+  self_care: ["See a doctor for blood tests", "Avoid alcohol", "Household contacts should get vaccinated"]
+  red_flags: ["Confusion", "Bleeding", "Swelling of the abdomen"]
+  source: https://www.who.int/news-room/fact-sheets/detail/hepatitis-b
+- icd10: A09
+  name: Acute gastroenteritis
+  synonyms: ["stomach flu", "stomach infection", "loose motions and vomiting"]
+  body_systems: [Infectious, Gastrointestinal]
+  india_common: true
+  symptoms: {diarrhoea: 1.0, vomiting: 0.7, nausea: 0.7, abdominal_pain: 0.6, fever: 0.4, dehydration: 0.5}
+  first_line: [oral_rehydration]
+  self_care: ["Drink ORS after every loose stool", "Continue light meals", "Wash hands with soap"]
+  red_flags: ["Signs of dehydration (very little urine, dizziness, sunken eyes)", "Blood in stool", "Vomiting everything for more than a day", "High fever"]
+  source: https://medlineplus.gov/gastroenteritis.html
+- icd10: A00.9
+  name: Cholera
+  synonyms: ["haiza"]
+  body_systems: [Infectious, Gastrointestinal]
+  india_common: true
+  symptoms: {rice_water_stools: 1.0, diarrhoea: 0.9, vomiting: 0.7, dehydration: 0.9, muscle_cramps: 0.5}
+  first_line: [oral_rehydration, tetracycline]
+  self_care: ["Start ORS immediately and keep drinking", "Go to a health facility"]
+  red_flags: ["Very little urine", "Drowsiness", "Unable to drink"]
+  source: https://www.who.int/news-room/fact-sheets/detail/cholera
+- icd10: A03.9
+  name: Bacillary dysentery (shigellosis)
+  synonyms: ["shigella", "dysentery"]
+  body_systems: [Infectious, Gastrointestinal]
+  india_common: true
+  symptoms: {bloody_diarrhoea: 1.0, fever: 0.7, abdominal_pain: 0.8, diarrhoea: 0.6}
+  first_line: [oral_rehydration, fluoroquinolone, cephalosporin]
+  self_care: ["Drink ORS", "See a doctor because blood in stool needs assessment"]
+  red_flags: ["Signs of dehydration", "High fever", "Seizures in a child"]
+  source: https://medlineplus.gov/ency/article/000295.htm
+- icd10: A06.0
+  name: Amoebic dysentery
+  synonyms: ["amoebiasis"]
+  body_systems: [Infectious, Gastrointestinal]
+  india_common: true
+  symptoms: {bloody_diarrhoea: 0.9, abdominal_pain: 0.8, diarrhoea: 0.6, fever: 0.3, bloating: 0.4}
+  first_line: [nitroimidazole, oral_rehydration]
+  self_care: ["Drink safe water", "Complete the treatment course"]
+  red_flags: ["Pain under the right ribs with fever", "Signs of dehydration"]
+  source: https://medlineplus.gov/ency/article/000298.htm
+- icd10: A07.1
+  name: Giardiasis
+  synonyms: ["giardia"]
+  body_systems: [Infectious, Gastrointestinal]
+  india_common: true
+  symptoms: {diarrhoea: 0.9, bloating: 0.8, abdominal_pain: 0.6, nausea: 0.5, weight_loss: 0.4, loss_of_appetite: 0.4}
+  first_line: [nitroimidazole]
+  self_care: ["Drink boiled or filtered water", "Wash hands before eating"]
+  red_flags: ["Signs of dehydration", "Diarrhoea lasting more than two weeks"]
+  source: https://medlineplus.gov/giardiainfections.html
+- icd10: A05.9
+  name: Food poisoning
+  synonyms: ["bacterial food poisoning"]
+  body_systems: [Gastrointestinal]
+  india_common: true
+  symptoms: {vomiting: 0.9, nausea: 0.9, diarrhoea: 0.8, abdominal_pain: 0.7, fever: 0.3}
+  first_line: [oral_rehydration]
+  self_care: ["Sip ORS", "Rest the stomach and then eat light food"]
+  red_flags: ["Blood in stool", "Signs of dehydration", "Blurred vision or difficulty swallowing"]
+  source: https://medlineplus.gov/foodborneillness.html
+- icd10: B01.9
+  name: Chickenpox
+  synonyms: ["varicella", "choti mata"]
+  body_systems: [Infectious, Skin]
+  india_common: true
+  symptoms: {rash: 0.9, blisters: 1.0, itching: 0.8, fever: 0.6, fatigue: 0.4, headache: 0.3}
+  first_line: [paracetamol, antihistamine, antiviral_herpes]
+  self_care: ["Keep nails short and avoid scratching", "Stay home until all blisters crust over", "Use paracetamol for fever; avoid aspirin in children"]
+  red_flags: ["Breathlessness", "Drowsiness or confusion", "Blisters that become red, hot and painful", "Pregnancy or a newborn in the home"]
+  source: https://medlineplus.gov/chickenpox.html
+- icd10: B02.9
+  name: Shingles (herpes zoster)
+  synonyms: ["herpes zoster", "nagin"]
+  body_systems: [Infectious, Skin, Neurological]
+  india_common: true
+  symptoms: {blisters: 0.9, rash: 0.8, numbness_tingling: 0.5, itching: 0.4, fever: 0.2}
+  first_line: [antiviral_herpes, paracetamol]
+  self_care: ["See a doctor within three days of the rash for antiviral treatment", "Keep the rash clean and covered"]
+  red_flags: ["Rash near the eye", "Weakness of the face", "Confusion"]
+  source: https://medlineplus.gov/shingles.html
+- icd10: B05.9
+  name: Measles
+  synonyms: ["khasra", "rubeola"]
+  body_systems: [Infectious, Skin]
+  india_common: true
+  symptoms: {fever: 0.9, rash: 1.0, cough: 0.7, runny_nose: 0.7, red_eye: 0.7, high_fever: 0.5}
+  first_line: [paracetamol, oral_rehydration]
+  self_care: ["Isolate at home", "Check vaccination status of family members"]
+  red_flags: ["Breathlessness", "Seizures", "Drowsiness", "Severe diarrhoea"]
+  source: https://www.who.int/news-room/fact-sheets/detail/measles
+- icd10: B26.9
+  name: Mumps
+  synonyms: ["galsua"]
+  body_systems: [Infectious]
+  india_common: true
+  symptoms: {fever: 0.6, swollen_lymph_nodes: 0.6, headache: 0.4, body_ache: 0.4, fatigue: 0.4, loss_of_appetite: 0.4}
+  first_line: [paracetamol]
+  self_care: ["Rest and drink fluids", "Stay home to avoid spreading it"]
+  red_flags: ["Severe headache with stiff neck", "Painful swollen testicles", "Severe abdominal pain"]
+  source: https://medlineplus.gov/mumps.html
+- icd10: J11.1
+  name: Influenza (flu)
+  synonyms: ["flu", "viral fever", "seasonal flu"]
+  body_systems: [Infectious, Respiratory]
+  india_common: true
+  symptoms: {fever: 0.9, body_ache: 0.8, cough: 0.7, sore_throat: 0.6, headache: 0.6, fatigue: 0.7, runny_nose: 0.5, chills: 0.5}
+  first_line: [paracetamol, antiviral_influenza]
+  self_care: ["Rest and drink fluids", "Stay home until the fever is gone for a day"]
+  red_flags: ["Breathlessness", "Chest pain", "Confusion", "Fever returning after improving"]
+  source: https://medlineplus.gov/flu.html
+- icd10: U07.1
+  name: COVID-19
+  synonyms: ["covid", "coronavirus"]
+  body_systems: [Infectious, Respiratory]
+  india_common: true
+  symptoms: {fever: 0.7, cough: 0.7, fatigue: 0.7, loss_of_smell: 0.6, sore_throat: 0.5, body_ache: 0.5, breathlessness: 0.4, headache: 0.4}
+  first_line: [paracetamol]
+  self_care: ["Test if advised", "Rest and drink fluids", "Isolate while unwell"]
+  red_flags: ["Breathlessness", "Chest pain or pressure", "Confusion", "Bluish lips"]
+  source: https://medlineplus.gov/covid19coronavirusdisease2019.html
+- icd10: J00
+  name: Common cold
+  synonyms: ["cold", "zukam", "acute nasopharyngitis"]
+  body_systems: [Respiratory, Ear nose and throat]
+  india_common: true
+  symptoms: {runny_nose: 1.0, sneezing: 0.8, nasal_congestion: 0.8, sore_throat: 0.6, cough: 0.5, fever: 0.2, headache: 0.3}
+  first_line: [paracetamol, antihistamine]
+  self_care: ["Rest, warm fluids and steam inhalation", "Antibiotics do not help a cold"]
+  red_flags: ["Breathlessness", "Fever over three days", "Severe ear or sinus pain"]
+  source: https://medlineplus.gov/commoncold.html
+- icd10: J02.9
+  name: Acute pharyngitis (sore throat)
+  synonyms: ["throat infection", "pharyngitis"]
+  body_systems: [Ear nose and throat]
+  india_common: true
+  symptoms: {sore_throat: 1.0, fever: 0.5, swollen_lymph_nodes: 0.4, cough: 0.3, hoarse_voice: 0.3}
+  first_line: [paracetamol]
+  self_care: ["Warm salt-water gargles", "Warm fluids"]
+  red_flags: ["Difficulty swallowing saliva", "Drooling", "Difficulty breathing", "Muffled voice"]
+  source: https://medlineplus.gov/sorethroat.html
+- icd10: J03.90
+  name: Acute tonsillitis
+  synonyms: ["tonsils", "tonsillitis"]
+  body_systems: [Ear nose and throat]
+  india_common: true
+  symptoms: {sore_throat: 1.0, fever: 0.7, swollen_lymph_nodes: 0.6, difficulty_swallowing: 0.5, ear_pain: 0.2}
+  first_line: [paracetamol, penicillin]
+  self_care: ["Warm salt-water gargles", "Soft foods and plenty of fluids"]
+  red_flags: ["Unable to swallow saliva", "Difficulty breathing", "One-sided throat swelling"]
+  source: https://medlineplus.gov/tonsillitis.html
+- icd10: J01.90
+  name: Acute sinusitis
+  synonyms: ["sinus infection", "sinus"]
+  body_systems: [Ear nose and throat]
+  india_common: true
+  symptoms: {facial_pain: 1.0, nasal_congestion: 0.8, runny_nose: 0.6, headache: 0.6, fever: 0.3, loss_of_smell: 0.3}
+  first_line: [paracetamol, inhaled_corticosteroid]
+  self_care: ["Steam inhalation and saline nose rinses", "Most cases settle without antibiotics"]
+  red_flags: ["Swelling around the eye", "Severe headache", "Double vision", "Confusion"]
+  source: https://medlineplus.gov/sinusitis.html
+- icd10: J20.9
+  name: Acute bronchitis
+  synonyms: ["chest cold"]
+  body_systems: [Respiratory]
+  india_common: true
+  symptoms: {cough: 0.9, productive_cough: 0.8, chest_tightness: 0.4, wheezing: 0.3, fever: 0.3, fatigue: 0.4}
+  first_line: [paracetamol]
+  self_care: ["Rest and fluids", "Avoid smoke"]
+  red_flags: ["Breathlessness", "Cough with blood", "High fever", "Cough lasting more than three weeks"]
+  source: https://medlineplus.gov/acutebronchitis.html
+- icd10: J18.9
+  name: Pneumonia
+  synonyms: ["lung infection", "chest infection"]
+  body_systems: [Respiratory, Infectious]
+  india_common: true
+  symptoms: {fever: 0.9, productive_cough: 0.9, breathlessness: 0.8, chest_pain: 0.5, chills: 0.6, fatigue: 0.6, confusion: 0.2}
+  first_line: [penicillin, macrolide]
+  self_care: ["See a doctor the same day"]
+  red_flags: ["Fast or difficult breathing", "Bluish lips", "Confusion", "Chest pain on breathing"]
+  source: https://medlineplus.gov/pneumonia.html
+- icd10: B35.4
+  name: Ringworm of the body (tinea corporis)
+  synonyms: ["ringworm", "daad", "fungal infection"]
+  body_systems: [Skin, Infectious]
+  india_common: true
+  symptoms: {ring_shaped_rash: 1.0, itching: 0.9, scaly_patches: 0.4}
+  first_line: [antifungal_topical]
+  self_care: ["Keep skin dry and wear loose cotton clothes", "Do not share towels", "Avoid steroid creams on fungal rashes"]
+  red_flags: ["Rash spreading widely despite treatment"]
+  source: https://medlineplus.gov/tineainfections.html
+- icd10: B86
+  name: Scabies
+  synonyms: ["khaj", "itch mite"]
+  body_systems: [Skin, Infectious]
+  india_common: true
+  symptoms: {itching: 1.0, rash: 0.8, blisters: 0.3}
+  first_line: [scabicide, antihistamine]
+  self_care: ["Treat all household members at the same time", "Wash bedding and clothes in hot water"]
+  red_flags: ["Infected sores with fever"]
+  source: https://medlineplus.gov/scabies.html
+- icd10: B82.0
+  name: Intestinal worms
+  synonyms: ["worm infestation", "pet mein keede", "roundworm", "hookworm"]
+  body_systems: [Infectious, Gastrointestinal]
+  india_common: true
+  symptoms: {worms_in_stool: 1.0, abdominal_pain: 0.5, loss_of_appetite: 0.4, pallor: 0.4, fatigue: 0.4, diarrhoea: 0.3}
+  first_line: [anthelmintic]
+  self_care: ["Deworming as per the national programme", "Wash hands after the toilet", "Wear footwear outdoors"]
+  red_flags: ["Severe abdominal pain with vomiting", "Marked paleness and breathlessness"]
+  source: https://www.who.int/news-room/fact-sheets/detail/soil-transmitted-helminth-infections
+- icd10: A30.9
+  name: Leprosy
+  synonyms: ["Hansen disease", "kusht rog"]
+  body_systems: [Infectious, Skin, Neurological]
+  india_common: true
+  symptoms: {numb_skin_patch: 1.0, skin_depigmentation: 0.5, numbness_tingling: 0.6, slow_healing_wounds: 0.3}
+  first_line: [leprosy_mdt]
+  self_care: ["Free treatment is available at government health centres", "Protect numb hands and feet from injury"]
+  red_flags: ["Painful swollen nerves", "Sudden weakness of hands or feet", "Eye pain or redness"]
+  source: https://www.who.int/news-room/fact-sheets/detail/leprosy
+- icd10: Z20.3
+  name: Rabies exposure (animal bite)
+  synonyms: ["dog bite", "rabies risk"]
+  body_systems: [Infectious]
+  india_common: true
+  symptoms: {animal_bite: 1.0}
+  first_line: [rabies_prophylaxis]
+  self_care: ["Wash the wound with soap and running water for 15 minutes right away", "Go to a health facility today for the rabies vaccine", "Do not apply chilli, oil or other substances to the wound"]
+  red_flags: ["Any bite or scratch that broke the skin", "Bite on the head, face or hands", "Fear of water or agitation after a past bite"]
+  source: https://www.who.int/news-room/fact-sheets/detail/rabies
+- icd10: A83.0
+  name: Japanese encephalitis
+  synonyms: ["JE", "brain fever"]
+  body_systems: [Infectious, Neurological]
+  india_common: true
+  symptoms: {fever: 0.9, headache: 0.8, vomiting: 0.5, confusion: 0.8, seizure: 0.6, neck_stiffness: 0.5}
+  first_line: []
+  self_care: ["This needs hospital care now"]
+  red_flags: ["Confusion", "Seizures", "Drowsiness"]
+  source: https://www.who.int/news-room/fact-sheets/detail/japanese-encephalitis
+- icd10: G03.9
+  name: Meningitis
+  synonyms: ["brain fever"]
+  body_systems: [Infectious, Neurological]
+  india_common: true
+  symptoms: {fever: 0.9, headache: 0.9, neck_stiffness: 1.0, photophobia: 0.7, vomiting: 0.6, confusion: 0.6, petechiae: 0.4, seizure: 0.3}
+  first_line: []
+  self_care: ["This needs emergency care now"]
+  red_flags: ["Stiff neck with fever", "Rash that does not fade", "Drowsiness or confusion", "Seizures"]
+  source: https://medlineplus.gov/meningitis.html
+- icd10: N39.0
+  name: Urinary tract infection
+  synonyms: ["UTI", "urine infection", "cystitis"]
+  body_systems: [Renal and urinary, Infectious]
+  india_common: true
+  symptoms: {burning_urination: 1.0, frequent_urination: 0.8, lower_abdominal_pain: 0.6, blood_in_urine: 0.3, fever: 0.3, dark_urine: 0.2}
+  first_line: [nitrofurantoin, cephalosporin]
+  self_care: ["Drink plenty of water", "Do not delay passing urine"]
+  red_flags: ["Fever with back or side pain", "Vomiting", "Pregnancy", "Symptoms in a man or a child"]
+  source: https://medlineplus.gov/urinarytractinfections.html
+- icd10: N10
+  name: Kidney infection (acute pyelonephritis)
+  synonyms: ["pyelonephritis", "kidney infection"]
+  body_systems: [Renal and urinary, Infectious]
+  india_common: true
+  symptoms: {flank_pain: 1.0, fever: 0.9, chills: 0.7, burning_urination: 0.6, vomiting: 0.5, nausea: 0.5, frequent_urination: 0.4}
+  first_line: [cephalosporin, fluoroquinolone]
+  self_care: ["See a doctor the same day"]
+  red_flags: ["Vomiting and unable to keep fluids", "Confusion", "Pregnancy"]
+  source: https://medlineplus.gov/urinarytractinfections.html
+- icd10: H10.9
+  name: Conjunctivitis (eye flu)
+  synonyms: ["eye flu", "pink eye", "aankh aana"]
+  body_systems: [Eye, Infectious]
+  india_common: true
+  symptoms: {red_eye: 1.0, eye_discharge: 0.8, itching: 0.3, photophobia: 0.2}
+  first_line: [antibiotic_eye_drops, antihistamine]
+  self_care: ["Wash hands often", "Do not share towels", "Do not use steroid eye drops without an eye doctor"]
+  red_flags: ["Eye pain", "Blurred vision", "Sensitivity to light", "Contact lens wearer"]
+  source: https://medlineplus.gov/pinkeye.html
+- icd10: H66.90
+  name: Middle ear infection (otitis media)
+  synonyms: ["ear infection", "kaan ka infection"]
+  body_systems: [Ear nose and throat]
+  india_common: true
+  symptoms: {ear_pain: 1.0, fever: 0.6, hearing_loss: 0.5, ear_discharge: 0.5}
+  first_line: [paracetamol, penicillin]
+  self_care: ["Keep the ear dry", "Do not put oil or anything into the ear"]
+  red_flags: ["Swelling behind the ear", "Severe headache", "Weakness of the face", "Stiff neck"]
+  source: https://medlineplus.gov/earinfections.html
+- icd10: L01.00
+  name: Impetigo
+  synonyms: ["skin sores"]
+  body_systems: [Skin, Infectious]
+  india_common: true
+  symptoms: {skin_sores: 1.0, blisters: 0.5, itching: 0.5, rash: 0.4}
+  first_line: [penicillin]
+  self_care: ["Keep sores clean and covered", "Do not share towels"]
+  red_flags: ["Fever", "Spreading redness", "Dark urine after a skin infection"]
+  source: https://medlineplus.gov/impetigo.html
+- icd10: B37.0
+  name: Oral thrush
+  synonyms: ["candidiasis of the mouth"]
+  body_systems: [Infectious, Gastrointestinal]
+  india_common: true
+  symptoms: {white_patches_mouth: 1.0, mouth_ulcers: 0.3, difficulty_swallowing: 0.3}
+  first_line: [azole_antifungal]
+  self_care: ["Rinse the mouth after using an inhaler", "Check blood sugar if thrush keeps coming back"]
+  red_flags: ["Pain on swallowing", "Thrush in an adult without a clear cause"]
+  source: https://medlineplus.gov/ency/article/000626.htm
+- icd10: N76.0
+  name: Vaginal infection (acute vaginitis)
+  synonyms: ["vaginitis", "white discharge infection", "yeast infection"]
+  body_systems: [Reproductive, Infectious]
+  india_common: true
+  symptoms: {vaginal_discharge: 1.0, vaginal_itching: 0.8, burning_urination: 0.3}
+  first_line: [azole_antifungal, nitroimidazole]
+  self_care: ["Wear loose cotton underwear", "Avoid douching"]
+  red_flags: ["Fever or pelvic pain", "Pregnancy", "Sores or ulcers"]
+  source: https://medlineplus.gov/vaginitis.html
+
+# ===================== heart and metabolism =====================
+- icd10: I10
+  name: High blood pressure (hypertension)
+  synonyms: ["BP", "high BP", "hypertension"]
+  body_systems: [Cardiovascular]
+  india_common: true
+  symptoms: {headache: 0.3, dizziness: 0.3, blurred_vision: 0.2, nosebleed: 0.1}
+  first_line: [ccb, ace_inhibitor, arb, thiazide]
+  self_care: ["Most people have no symptoms; check BP regularly", "Cut down salt, pickles and papad", "Walk daily and keep a healthy weight", "Take BP medicines every day even when you feel well"]
+  red_flags: ["Very high reading with chest pain, breathlessness, severe headache or confusion", "Weakness of one side or slurred speech"]
+  source: https://medlineplus.gov/highbloodpressure.html
+- icd10: E11.9
+  name: Type 2 diabetes
+  synonyms: ["diabetes", "sugar", "madhumeh", "high sugar"]
+  body_systems: [Endocrine and metabolic]
+  india_common: true
+  symptoms: {excessive_thirst: 0.8, frequent_urination: 0.8, excessive_hunger: 0.5, fatigue: 0.6, weight_loss: 0.4, blurred_vision: 0.3, slow_healing_wounds: 0.5, numbness_tingling: 0.4, dark_neck_patches: 0.3}
+  first_line: [biguanide, sulfonylurea, dpp4_inhibitor, sglt2_inhibitor]
+  self_care: ["Check blood sugar and HbA1c as advised", "Reduce refined carbohydrates and sugary drinks", "Walk at least 30 minutes most days", "Check your feet daily"]
+  red_flags: ["Very high sugar with vomiting, deep breathing or drowsiness", "Low sugar with sweating, shaking or confusion", "A foot wound that is not healing"]
+  source: https://medlineplus.gov/diabetestype2.html
+- icd10: E10.9
+  name: Type 1 diabetes
+  synonyms: ["juvenile diabetes"]
+  body_systems: [Endocrine and metabolic]
+  india_common: false
+  symptoms: {excessive_thirst: 0.9, frequent_urination: 0.9, weight_loss: 0.8, fatigue: 0.6, excessive_hunger: 0.5}
+  first_line: [insulin]
+  self_care: ["Never stop insulin, even when unwell", "Check sugar often on sick days"]
+  red_flags: ["Vomiting, abdominal pain or fast breathing", "Drowsiness or confusion"]
+  source: https://medlineplus.gov/diabetestype1.html
+- icd10: E78.5
+  name: High cholesterol (hyperlipidaemia)
+  synonyms: ["cholesterol", "high lipids", "dyslipidaemia"]
+  body_systems: [Cardiovascular, Endocrine and metabolic]
+  india_common: true
+  symptoms: {fatigue: 0.05}
+  first_line: [statin]
+  self_care: ["Usually has no symptoms; found on a lipid profile", "Reduce fried food, ghee and vanaspati", "Exercise regularly"]
+  red_flags: ["Chest pain", "Weakness of one side"]
+  source: https://medlineplus.gov/cholesterol.html
+- icd10: I20.9
+  name: Angina
+  synonyms: ["heart pain", "chest pain on exertion"]
+  body_systems: [Cardiovascular]
+  india_common: true
+  symptoms: {chest_pain: 1.0, chest_tightness: 0.8, pain_spreading_arm_jaw: 0.6, breathlessness: 0.5, excessive_sweating: 0.3}
+  first_line: [nitrate, antiplatelet, beta_blocker, statin]
+  self_care: ["See a doctor soon for a heart check-up", "Stop activity if pain starts"]
+  red_flags: ["Pain at rest or lasting more than 15 minutes", "Pain with sweating, breathlessness or fainting"]
+  source: https://medlineplus.gov/angina.html
+- icd10: I21.9
+  name: Heart attack (acute myocardial infarction)
+  synonyms: ["heart attack", "MI", "dil ka daura"]
+  body_systems: [Cardiovascular]
+  india_common: true
+  symptoms: {chest_pain: 1.0, pain_spreading_arm_jaw: 0.8, excessive_sweating: 0.7, breathlessness: 0.7, nausea: 0.4, fainting: 0.3, chest_tightness: 0.8}
+  first_line: [antiplatelet]
+  self_care: ["Call 112 or 108 now", "Sit down and rest; do not drive yourself"]
+  red_flags: ["Chest pain lasting more than a few minutes", "Chest pain with sweating or breathlessness"]
+  source: https://medlineplus.gov/heartattack.html
+- icd10: I50.9
+  name: Heart failure
+  synonyms: ["weak heart", "cardiac failure"]
+  body_systems: [Cardiovascular]
+  india_common: true
+  symptoms: {breathlessness: 1.0, leg_swelling: 0.8, fatigue: 0.7, night_urination: 0.3, cough: 0.3, weight_gain: 0.4}
+  first_line: [loop_diuretic, ace_inhibitor, beta_blocker]
+  self_care: ["Weigh yourself daily", "Limit salt", "Take medicines regularly"]
+  red_flags: ["Breathless at rest or lying flat", "Pink frothy cough", "Fainting", "Rapid weight gain over a few days"]
+  source: https://medlineplus.gov/heartfailure.html
+- icd10: I63.9
+  name: Stroke (ischaemic)
+  synonyms: ["stroke", "brain attack", "paralysis attack", "lakwa"]
+  body_systems: [Neurological, Cardiovascular]
+  india_common: true
+  symptoms: {facial_droop: 1.0, one_sided_weakness: 1.0, slurred_speech: 0.9, confusion: 0.5, blurred_vision: 0.4, dizziness: 0.4, severe_sudden_headache: 0.3}
+  first_line: []
+  self_care: ["Call 112 or 108 now; note the time symptoms began", "Do not give food or water"]
+  red_flags: ["Face drooping, arm weakness, speech difficulty (FAST)"]
+  source: https://medlineplus.gov/stroke.html
+- icd10: I48.91
+  name: Atrial fibrillation
+  synonyms: ["AF", "irregular heartbeat"]
+  body_systems: [Cardiovascular]
+  india_common: false
+  symptoms: {palpitations: 1.0, breathlessness: 0.5, dizziness: 0.4, fatigue: 0.5, chest_pain: 0.2}
+  first_line: [beta_blocker, anticoagulant]
+  self_care: ["See a doctor for an ECG"]
+  red_flags: ["Chest pain", "Fainting", "Weakness of one side"]
+  source: https://medlineplus.gov/atrialfibrillation.html
+- icd10: I82.409
+  name: Deep vein thrombosis
+  synonyms: ["DVT", "blood clot in the leg"]
+  body_systems: [Cardiovascular]
+  india_common: false
+  symptoms: {calf_pain_swelling: 1.0, leg_swelling: 0.6}
+  first_line: [anticoagulant]
+  self_care: ["See a doctor the same day"]
+  red_flags: ["Sudden breathlessness or chest pain", "Coughing blood"]
+  source: https://medlineplus.gov/deepveinthrombosis.html
+- icd10: E16.2
+  name: Low blood sugar (hypoglycaemia)
+  synonyms: ["hypo", "low sugar"]
+  body_systems: [Endocrine and metabolic]
+  india_common: true
+  symptoms: {excessive_sweating: 0.8, tremor: 0.7, palpitations: 0.6, confusion: 0.7, excessive_hunger: 0.6, dizziness: 0.6, fainting: 0.4, unconsciousness: 0.3}
+  first_line: []
+  self_care: ["If awake and able to swallow, take glucose, sugar or juice right away, then a snack", "Tell your doctor; diabetes medicines may need review"]
+  red_flags: ["Unconscious or unable to swallow", "Seizure"]
+  source: https://medlineplus.gov/hypoglycemia.html
+- icd10: E66.9
+  name: Obesity
+  synonyms: ["overweight", "motapa"]
+  body_systems: [Endocrine and metabolic]
+  india_common: true
+  symptoms: {weight_gain: 1.0, fatigue: 0.3, breathlessness: 0.2, knee_pain: 0.3, dark_neck_patches: 0.3}
+  first_line: []
+  self_care: ["Aim for gradual weight loss with diet and activity", "Waist size matters; for Indian adults keep it below about 90 cm (men) or 80 cm (women)"]
+  red_flags: ["Loud snoring with daytime sleepiness", "Chest pain on exertion"]
+  source: https://medlineplus.gov/obesity.html
+
+# ===================== hormones, blood, nutrition =====================
+- icd10: E03.9
+  name: Hypothyroidism
+  synonyms: ["underactive thyroid", "thyroid", "low thyroid"]
+  body_systems: [Endocrine and metabolic]
+  india_common: true
+  symptoms: {fatigue: 0.8, weight_gain: 0.7, cold_intolerance: 0.7, constipation: 0.5, hair_loss: 0.5, low_mood: 0.4, irregular_periods: 0.4, neck_swelling: 0.3, memory_problems: 0.3}
+  first_line: [thyroid_hormone]
+  self_care: ["Take thyroid tablets on an empty stomach each morning", "Keep iron and calcium tablets at least 4 hours apart from thyroid tablets", "Recheck TSH as advised"]
+  red_flags: ["Extreme drowsiness or confusion", "Very slow heartbeat"]
+  source: https://medlineplus.gov/hypothyroidism.html
+- icd10: E05.90
+  name: Hyperthyroidism
+  synonyms: ["overactive thyroid"]
+  body_systems: [Endocrine and metabolic]
+  india_common: true
+  symptoms: {palpitations: 0.8, weight_loss: 0.8, heat_intolerance: 0.7, tremor: 0.6, excessive_sweating: 0.6, anxiety: 0.5, diarrhoea: 0.3, neck_swelling: 0.4, insomnia: 0.4}
+  first_line: [antithyroid, beta_blocker]
+  self_care: ["See a doctor for thyroid tests"]
+  red_flags: ["Very fast heartbeat with fever or confusion", "Chest pain"]
+  source: https://medlineplus.gov/hyperthyroidism.html
+- icd10: E04.9
+  name: Goitre
+  synonyms: ["thyroid swelling", "galgand"]
+  body_systems: [Endocrine and metabolic]
+  india_common: true
+  symptoms: {neck_swelling: 1.0, difficulty_swallowing: 0.2, hoarse_voice: 0.2}
+  first_line: [thyroid_hormone]
+  self_care: ["Use iodised salt", "Get thyroid tests"]
+  red_flags: ["Difficulty breathing", "Rapidly growing lump"]
+  source: https://medlineplus.gov/thyroiddiseases.html
+- icd10: E55.9
+  name: Vitamin D deficiency
+  synonyms: ["low vitamin D"]
+  body_systems: [Endocrine and metabolic, Musculoskeletal]
+  india_common: true
+  symptoms: {bone_pain: 0.6, fatigue: 0.6, muscle_cramps: 0.4, body_ache: 0.5, back_pain: 0.3}
+  first_line: [vitamin_d, calcium_supplement]
+  self_care: ["Sunlight on arms and legs for 15 to 30 minutes on most days", "Supplement doses only as advised by a doctor"]
+  red_flags: ["Bone pain after a minor fall"]
+  source: https://medlineplus.gov/vitamind.html
+- icd10: D51.9
+  name: Vitamin B12 deficiency anaemia
+  synonyms: ["B12 deficiency", "low B12"]
+  body_systems: [Haematological, Neurological]
+  india_common: true
+  symptoms: {fatigue: 0.8, numbness_tingling: 0.7, pallor: 0.6, memory_problems: 0.4, mouth_ulcers: 0.3, breathlessness: 0.3}
+  first_line: [vitamin_b12]
+  self_care: ["Vegetarians are at higher risk; include dairy and consider fortified foods", "Long-term metformin use can lower B12"]
+  red_flags: ["Difficulty walking or balance problems", "Confusion"]
+  source: https://medlineplus.gov/ency/article/000574.htm
+- icd10: D50.9
+  name: Iron-deficiency anaemia
+  synonyms: ["anaemia", "anemia", "low haemoglobin", "khoon ki kami"]
+  body_systems: [Haematological]
+  india_common: true
+  symptoms: {fatigue: 0.9, pallor: 0.9, breathlessness: 0.5, dizziness: 0.5, palpitations: 0.3, hair_loss: 0.3, headache: 0.3, heavy_periods: 0.3}
+  first_line: [iron_supplement, folic_acid]
+  self_care: ["Eat iron-rich foods (green leafy vegetables, pulses, jaggery, meat) with vitamin C", "Avoid tea or coffee with meals", "Find the cause (heavy periods, worms, bleeding)"]
+  red_flags: ["Breathless at rest", "Chest pain", "Black stools or blood in stool"]
+  source: https://medlineplus.gov/anemia.html
+- icd10: D57.1
+  name: Sickle cell disease
+  synonyms: ["sickle cell anaemia"]
+  body_systems: [Haematological]
+  india_common: true
+  symptoms: {bone_pain: 0.9, pallor: 0.6, fatigue: 0.6, jaundice: 0.5, joint_swelling: 0.3, fever: 0.3}
+  first_line: [paracetamol, folic_acid]
+  self_care: ["Drink plenty of water", "Keep vaccinations up to date", "Screening is free under the national mission"]
+  red_flags: ["Fever", "Chest pain or breathlessness", "Severe pain not controlled at home", "Weakness of one side"]
+  source: https://medlineplus.gov/sicklecelldisease.html
+- icd10: D56.1
+  name: Beta thalassaemia
+  synonyms: ["thalassemia", "thalassaemia major"]
+  body_systems: [Haematological]
+  india_common: true
+  symptoms: {pallor: 0.9, fatigue: 0.8, jaundice: 0.4, dark_urine: 0.3, breathlessness: 0.3}
+  first_line: [folic_acid]
+  self_care: ["Regular follow-up at a thalassaemia centre", "Carrier testing before marriage or pregnancy"]
+  red_flags: ["Fever", "Severe tiredness or breathlessness"]
+  source: https://medlineplus.gov/thalassemia.html
+- icd10: E28.2
+  name: Polycystic ovary syndrome
+  synonyms: ["PCOS", "PCOD"]
+  body_systems: [Reproductive, Endocrine and metabolic]
+  india_common: true
+  symptoms: {irregular_periods: 1.0, hirsutism: 0.8, acne: 0.6, weight_gain: 0.6, hair_loss: 0.4, dark_neck_patches: 0.4}
+  first_line: [hormonal_contraceptive, insulin_sensitiser_pcos]
+  self_care: ["Even modest weight loss often improves periods", "Regular exercise", "Screen for diabetes"]
+  red_flags: ["No period for three months with pregnancy ruled out", "Heavy bleeding"]
+  source: https://medlineplus.gov/polycysticovarysyndrome.html
+- icd10: E86.0
+  name: Dehydration
+  synonyms: ["paani ki kami"]
+  body_systems: [Endocrine and metabolic]
+  india_common: true
+  symptoms: {dehydration: 1.0, excessive_thirst: 0.7, dizziness: 0.6, dark_urine: 0.6, reduced_urine: 0.6, fatigue: 0.5}
+  first_line: [oral_rehydration]
+  self_care: ["Sip ORS or water often", "Rest in a cool place"]
+  red_flags: ["Confusion or drowsiness", "No urine for 8 hours", "Unable to drink"]
+  source: https://medlineplus.gov/dehydration.html
+
+# ===================== digestion and liver =====================
+- icd10: K21.9
+  name: Acid reflux (GERD)
+  synonyms: ["acidity", "GERD", "acid reflux", "reflux"]
+  body_systems: [Gastrointestinal]
+  india_common: true
+  symptoms: {heartburn: 1.0, indigestion: 0.6, upper_abdominal_pain: 0.5, cough: 0.2, hoarse_voice: 0.2, bloating: 0.3}
+  first_line: [ppi, h2_blocker, antacid]
+  self_care: ["Smaller meals, dinner 2 to 3 hours before bed", "Raise the head of the bed", "Cut down on spicy and fried food, tea and alcohol"]
+  red_flags: ["Difficulty swallowing", "Vomiting blood or black stools", "Weight loss", "Chest pain with sweating"]
+  source: https://medlineplus.gov/gerd.html
+- icd10: K29.70
+  name: Gastritis
+  synonyms: ["stomach inflammation", "gas trouble"]
+  body_systems: [Gastrointestinal]
+  india_common: true
+  symptoms: {upper_abdominal_pain: 0.9, indigestion: 0.8, nausea: 0.6, bloating: 0.5, heartburn: 0.5, loss_of_appetite: 0.3}
+  first_line: [ppi, antacid]
+  self_care: ["Avoid painkillers like ibuprofen or diclofenac on an empty stomach", "Limit alcohol and smoking"]
+  red_flags: ["Vomiting blood", "Black stools", "Severe pain"]
+  source: https://medlineplus.gov/ency/article/001150.htm
+- icd10: K27.9
+  name: Peptic ulcer
+  synonyms: ["stomach ulcer", "ulcer"]
+  body_systems: [Gastrointestinal]
+  india_common: true
+  symptoms: {upper_abdominal_pain: 1.0, indigestion: 0.6, nausea: 0.5, bloating: 0.4, black_stool: 0.3, vomiting_blood: 0.2}
+  first_line: [ppi]
+  self_care: ["Avoid NSAID painkillers", "Stop smoking"]
+  red_flags: ["Vomiting blood", "Black tarry stools", "Sudden severe abdominal pain"]
+  source: https://medlineplus.gov/pepticulcer.html
+- icd10: K58.9
+  name: Irritable bowel syndrome
+  synonyms: ["IBS"]
+  body_systems: [Gastrointestinal]
+  india_common: true
+  symptoms: {abdominal_pain: 0.8, bloating: 0.8, diarrhoea: 0.5, constipation: 0.5, anxiety: 0.3}
+  first_line: [antispasmodic, laxative]
+  self_care: ["Regular meals", "Note trigger foods", "Manage stress"]
+  red_flags: ["Blood in stool", "Weight loss", "Symptoms starting after age 50", "Waking at night with diarrhoea"]
+  source: https://medlineplus.gov/irritablebowelsyndrome.html
+- icd10: K59.00
+  name: Constipation
+  synonyms: ["kabz"]
+  body_systems: [Gastrointestinal]
+  india_common: true
+  symptoms: {constipation: 1.0, bloating: 0.5, abdominal_pain: 0.4, anal_pain: 0.2}
+  first_line: [laxative]
+  self_care: ["More fibre (fruits, vegetables, isabgol)", "More water", "Daily activity"]
+  red_flags: ["Blood in stool", "Weight loss", "New constipation after age 50", "Vomiting with a swollen abdomen"]
+  source: https://medlineplus.gov/constipation.html
+- icd10: K64.9
+  name: Piles (haemorrhoids)
+  synonyms: ["piles", "bawaseer", "hemorrhoids"]
+  body_systems: [Gastrointestinal]
+  india_common: true
+  symptoms: {anal_lump: 1.0, blood_in_stool: 0.7, anal_pain: 0.5, itching: 0.3, constipation: 0.5}
+  first_line: [laxative]
+  self_care: ["High-fibre diet and plenty of water", "Warm sitz baths", "Do not strain"]
+  red_flags: ["Heavy bleeding", "Black stools", "Weight loss", "Bleeding after age 50"]
+  source: https://medlineplus.gov/hemorrhoids.html
+- icd10: K60.2
+  name: Anal fissure
+  synonyms: ["fissure"]
+  body_systems: [Gastrointestinal]
+  india_common: true
+  symptoms: {anal_pain: 1.0, blood_in_stool: 0.6, constipation: 0.6}
+  first_line: [laxative]
+  self_care: ["Soft stools with fibre and water", "Warm sitz baths"]
+  red_flags: ["Heavy bleeding", "Fever with anal swelling"]
+  source: https://medlineplus.gov/analdisorders.html
+- icd10: K80.20
+  name: Gallstones
+  synonyms: ["pathri in gallbladder", "cholelithiasis"]
+  body_systems: [Hepatobiliary, Gastrointestinal]
+  india_common: true
+  symptoms: {right_upper_abdominal_pain: 1.0, nausea: 0.6, vomiting: 0.5, indigestion: 0.5, bloating: 0.4}
+  first_line: [surgery_referral]
+  self_care: ["Avoid heavy fatty meals"]
+  red_flags: ["Pain with fever", "Yellow eyes", "Pain lasting more than a few hours"]
+  source: https://medlineplus.gov/gallstones.html
+- icd10: K35.80
+  name: Appendicitis
+  synonyms: ["appendix"]
+  body_systems: [Gastrointestinal]
+  india_common: true
+  symptoms: {right_lower_abdominal_pain: 1.0, abdominal_pain: 0.6, nausea: 0.6, vomiting: 0.5, fever: 0.5, loss_of_appetite: 0.6}
+  first_line: [surgery_referral]
+  self_care: ["Go to a hospital now; do not take laxatives"]
+  red_flags: ["Worsening pain on the lower right side", "Pain with fever and vomiting"]
+  source: https://medlineplus.gov/appendicitis.html
+- icd10: K76.0
+  name: Fatty liver disease
+  synonyms: ["fatty liver", "NAFLD", "MASLD"]
+  body_systems: [Hepatobiliary]
+  india_common: true
+  symptoms: {fatigue: 0.3, right_upper_abdominal_pain: 0.3}
+  first_line: []
+  self_care: ["Often found on an ultrasound without symptoms", "Lose weight gradually", "Avoid alcohol", "Control sugar and cholesterol"]
+  red_flags: ["Yellow eyes", "Swelling of the abdomen", "Vomiting blood"]
+  source: https://medlineplus.gov/fattyliverdisease.html
+- icd10: K74.60
+  name: Cirrhosis of the liver
+  synonyms: ["liver cirrhosis"]
+  body_systems: [Hepatobiliary]
+  india_common: true
+  symptoms: {jaundice: 0.7, fatigue: 0.7, leg_swelling: 0.5, loss_of_appetite: 0.5, confusion: 0.3, vomiting_blood: 0.3, itching: 0.3, black_stool: 0.3}
+  first_line: []
+  self_care: ["No alcohol at all", "Avoid painkillers and herbal remedies unless a doctor approves them"]
+  red_flags: ["Vomiting blood", "Black stools", "Confusion or drowsiness", "Swelling of the abdomen with fever"]
+  source: https://medlineplus.gov/cirrhosis.html
+- icd10: K85.90
+  name: Acute pancreatitis
+  synonyms: ["pancreatitis"]
+  body_systems: [Gastrointestinal]
+  india_common: true
+  symptoms: {upper_abdominal_pain: 1.0, vomiting: 0.8, nausea: 0.7, fever: 0.4, back_pain: 0.5}
+  first_line: []
+  self_care: ["Go to a hospital now"]
+  red_flags: ["Severe upper abdominal pain spreading to the back", "Vomiting with breathlessness"]
+  source: https://medlineplus.gov/pancreatitis.html
+
+# ===================== lungs and allergy =====================
+- icd10: J45.909
+  name: Asthma
+  synonyms: ["dama", "wheezing illness"]
+  body_systems: [Respiratory]
+  india_common: true
+  symptoms: {wheezing: 1.0, breathlessness: 0.9, chest_tightness: 0.8, cough: 0.7}
+  first_line: [inhaled_saba, inhaled_corticosteroid, leukotriene_antagonist]
+  self_care: ["Use the preventer inhaler daily if prescribed", "Carry the reliever inhaler", "Avoid smoke, dust and chulha smoke"]
+  red_flags: ["Too breathless to speak", "Reliever not helping", "Bluish lips", "Drowsiness"]
+  source: https://medlineplus.gov/asthma.html
+- icd10: J44.9
+  name: COPD
+  synonyms: ["chronic bronchitis", "emphysema", "smoker's lung"]
+  body_systems: [Respiratory]
+  india_common: true
+  symptoms: {breathlessness: 0.9, chronic_cough: 0.8, productive_cough: 0.7, wheezing: 0.6, fatigue: 0.4}
+  first_line: [inhaled_lama, inhaled_saba]
+  self_care: ["Stop smoking and avoid biomass smoke", "Get flu and pneumonia vaccines", "Pulmonary rehabilitation exercises"]
+  red_flags: ["Breathless at rest", "Confusion or drowsiness", "Bluish lips"]
+  source: https://medlineplus.gov/copd.html
+- icd10: J30.9
+  name: Allergic rhinitis
+  synonyms: ["nasal allergy", "dust allergy", "hay fever"]
+  body_systems: [Ear nose and throat, Respiratory]
+  india_common: true
+  symptoms: {sneezing: 1.0, runny_nose: 0.9, nasal_congestion: 0.8, itching: 0.4, red_eye: 0.4}
+  first_line: [antihistamine, inhaled_corticosteroid]
+  self_care: ["Reduce dust exposure", "Wash bedding weekly"]
+  red_flags: ["Wheezing or breathlessness"]
+  source: https://medlineplus.gov/hayfever.html
+
+# ===================== brain and nerves =====================
+- icd10: G43.909
+  name: Migraine
+  synonyms: ["adhasishi", "half headache", "migraine headache"]
+  body_systems: [Neurological]
+  india_common: true
+  symptoms: {one_sided_headache: 1.0, headache: 0.8, nausea: 0.6, photophobia: 0.7, vomiting: 0.4, blurred_vision: 0.2}
+  first_line: [paracetamol, nsaid, triptan]
+  self_care: ["Rest in a dark quiet room", "Keep a headache diary to find triggers", "Regular sleep and meals"]
+  red_flags: ["Sudden worst headache of your life", "Headache with fever and stiff neck", "Headache with weakness or confusion", "New headache after age 50"]
+  source: https://medlineplus.gov/migraine.html
+- icd10: G44.209
+  name: Tension-type headache
+  synonyms: ["tension headache", "stress headache"]
+  body_systems: [Neurological]
+  india_common: true
+  symptoms: {headache: 1.0, neck_pain: 0.5, anxiety: 0.3, insomnia: 0.2}
+  first_line: [paracetamol, nsaid]
+  self_care: ["Regular breaks from screens", "Sleep and hydration", "Avoid using painkillers more than a few days a week"]
+  red_flags: ["Sudden severe headache", "Headache with fever and stiff neck"]
+  source: https://medlineplus.gov/headache.html
+- icd10: G40.909
+  name: Epilepsy
+  synonyms: ["fits", "mirgi", "seizure disorder"]
+  body_systems: [Neurological]
+  india_common: true
+  symptoms: {seizure: 1.0, confusion: 0.4, unconsciousness: 0.4}
+  first_line: [anticonvulsant]
+  self_care: ["Take medicines every day without missing doses", "Do not drive or swim alone until the doctor allows"]
+  red_flags: ["A seizure lasting more than 5 minutes", "Repeated seizures without waking", "First-ever seizure"]
+  source: https://medlineplus.gov/epilepsy.html
+- icd10: G51.0
+  name: Bell's palsy
+  synonyms: ["facial palsy", "face paralysis", "laqwa"]
+  body_systems: [Neurological]
+  india_common: true
+  symptoms: {facial_weakness: 1.0, facial_droop: 0.7, ear_pain: 0.3}
+  first_line: [corticosteroid_systemic]
+  self_care: ["See a doctor within 72 hours", "Protect the eye that does not close"]
+  red_flags: ["Weakness of an arm or leg too", "Slurred speech", "Confusion"]
+  source: https://medlineplus.gov/bellspalsy.html
+- icd10: G56.00
+  name: Carpal tunnel syndrome
+  synonyms: ["carpal tunnel"]
+  body_systems: [Neurological, Musculoskeletal]
+  india_common: true
+  symptoms: {hand_numbness_night: 1.0, numbness_tingling: 0.7}
+  first_line: [physiotherapy]
+  self_care: ["Wrist splint at night", "Take breaks from repetitive hand work"]
+  red_flags: ["Weakness or wasting of the hand muscles"]
+  source: https://medlineplus.gov/carpaltunnelsyndrome.html
+- icd10: G47.00
+  name: Insomnia
+  synonyms: ["sleeplessness", "neend na aana"]
+  body_systems: [Mental health, Neurological]
+  india_common: true
+  symptoms: {insomnia: 1.0, fatigue: 0.6, irritability: 0.4, poor_concentration: 0.4, anxiety: 0.3}
+  first_line: [sleep_hygiene, psychological_therapy]
+  self_care: ["Fixed sleep and wake times", "No screens or tea and coffee in the evening", "Avoid daytime naps"]
+  red_flags: ["Thoughts of self-harm", "Loud snoring with pauses in breathing"]
+  source: https://medlineplus.gov/insomnia.html
+- icd10: H81.10
+  name: Benign positional vertigo (BPPV)
+  synonyms: ["BPPV", "positional vertigo"]
+  body_systems: [Ear nose and throat, Neurological]
+  india_common: true
+  symptoms: {vertigo: 1.0, dizziness: 0.8, nausea: 0.5}
+  first_line: [physiotherapy, antivertigo]
+  self_care: ["Get up slowly", "A doctor can teach repositioning manoeuvres"]
+  red_flags: ["Vertigo with slurred speech, weakness, double vision or severe headache"]
+  source: https://medlineplus.gov/dizzinessandvertigo.html
+
+# ===================== mental health and substance use =====================
+- icd10: F32.9
+  name: Depression
+  synonyms: ["depression", "udaasi"]
+  body_systems: [Mental health]
+  india_common: true
+  symptoms: {low_mood: 1.0, loss_of_interest: 0.9, fatigue: 0.6, insomnia: 0.5, poor_concentration: 0.5, loss_of_appetite: 0.4, irritability: 0.3, suicidal_thoughts: 0.3}
+  first_line: [psychological_therapy, ssri]
+  self_care: ["Talk to someone you trust", "Tele-MANAS (free): 14416 or 1-800-891-4416", "Regular activity and routine"]
+  red_flags: ["Thoughts of suicide or self-harm", "Not eating or drinking"]
+  source: https://medlineplus.gov/depression.html
+- icd10: F41.1
+  name: Generalised anxiety disorder
+  synonyms: ["anxiety", "tension", "ghabrahat"]
+  body_systems: [Mental health]
+  india_common: true
+  symptoms: {anxiety: 1.0, insomnia: 0.5, irritability: 0.5, palpitations: 0.4, poor_concentration: 0.4, fatigue: 0.4, muscle_cramps: 0.1}
+  first_line: [psychological_therapy, ssri]
+  self_care: ["Breathing exercises", "Reduce caffeine", "Tele-MANAS (free): 14416"]
+  red_flags: ["Thoughts of self-harm", "Chest pain (get checked; do not assume it is anxiety)"]
+  source: https://medlineplus.gov/anxiety.html
+- icd10: F41.0
+  name: Panic disorder
+  synonyms: ["panic attacks"]
+  body_systems: [Mental health]
+  india_common: true
+  symptoms: {panic_attack: 1.0, palpitations: 0.8, breathlessness: 0.6, excessive_sweating: 0.5, tremor: 0.5, chest_tightness: 0.4, dizziness: 0.4}
+  first_line: [psychological_therapy, ssri]
+  self_care: ["Slow breathing during an attack", "Tele-MANAS (free): 14416"]
+  red_flags: ["First-ever chest pain with breathlessness should be checked for a heart problem"]
+  source: https://medlineplus.gov/panicdisorder.html
+- icd10: F10.20
+  name: Alcohol dependence
+  synonyms: ["alcohol addiction", "drinking problem"]
+  body_systems: [Mental health]
+  india_common: true
+  symptoms: {craving_withdrawal: 1.0, tremor: 0.5, anxiety: 0.4, insomnia: 0.4, excessive_sweating: 0.3}
+  first_line: [alcohol_dependence_treatment, thiamine, psychological_therapy]
+  self_care: ["Do not stop suddenly after heavy daily drinking without medical advice; withdrawal can cause seizures", "Tele-MANAS (free): 14416"]
+  red_flags: ["Seizures", "Confusion or seeing things", "Vomiting blood"]
+  source: https://medlineplus.gov/alcoholusedisorderaud.html
+- icd10: F17.200
+  name: Tobacco dependence
+  synonyms: ["smoking", "gutka", "khaini", "nicotine addiction"]
+  body_systems: [Mental health, Respiratory]
+  india_common: true
+  symptoms: {craving_withdrawal: 1.0, irritability: 0.4, anxiety: 0.3, chronic_cough: 0.3}
+  first_line: [nicotine_replacement, psychological_therapy]
+  self_care: ["National Tobacco Quitline 1800-112-356", "Set a quit date"]
+  red_flags: ["A mouth sore or white patch lasting more than two weeks"]
+  source: https://medlineplus.gov/quittingsmoking.html
+
+# ===================== kidneys and urinary =====================
+- icd10: N20.0
+  name: Kidney stone
+  synonyms: ["pathri", "renal stone", "kidney stones"]
+  body_systems: [Renal and urinary]
+  india_common: true
+  symptoms: {flank_pain: 1.0, blood_in_urine: 0.6, nausea: 0.5, vomiting: 0.4, burning_urination: 0.3, frequent_urination: 0.3}
+  first_line: [nsaid, alpha_blocker, urinary_alkaliniser]
+  self_care: ["Drink enough water to pass pale urine", "Cut down salt"]
+  red_flags: ["Fever with side pain", "Unable to pass urine", "Single kidney"]
+  source: https://medlineplus.gov/kidneystones.html
+- icd10: N18.9
+  name: Chronic kidney disease
+  synonyms: ["CKD", "kidney failure", "weak kidneys"]
+  body_systems: [Renal and urinary]
+  india_common: true
+  symptoms: {fatigue: 0.6, leg_swelling: 0.6, night_urination: 0.4, loss_of_appetite: 0.4, nausea: 0.3, itching: 0.3, reduced_urine: 0.3}
+  first_line: [ace_inhibitor, arb]
+  self_care: ["Control BP and sugar", "Avoid painkillers like ibuprofen and diclofenac", "Ask before taking any new medicine or herbal remedy"]
+  red_flags: ["Very little urine", "Breathlessness", "Confusion"]
+  source: https://medlineplus.gov/chronickidneydisease.html
+- icd10: N40.1
+  name: Enlarged prostate (BPH)
+  synonyms: ["prostate", "BPH"]
+  body_systems: [Renal and urinary, Reproductive]
+  india_common: true
+  symptoms: {weak_urine_stream: 1.0, night_urination: 0.8, frequent_urination: 0.7}
+  first_line: [alpha_blocker, five_alpha_reductase_inhibitor]
+  self_care: ["Less fluid in the evening", "Avoid alcohol and caffeine at night"]
+  red_flags: ["Unable to pass urine", "Blood in urine", "Fever"]
+  source: https://medlineplus.gov/enlargedprostatebph.html
+
+# ===================== women's health and pregnancy =====================
+- icd10: N94.6
+  name: Painful periods (dysmenorrhoea)
+  synonyms: ["period pain", "dysmenorrhea"]
+  body_systems: [Reproductive]
+  india_common: true
+  symptoms: {painful_periods: 1.0, lower_abdominal_pain: 0.8, back_pain: 0.4, nausea: 0.3}
+  first_line: [nsaid]
+  self_care: ["Warm compress on the lower abdomen", "Gentle exercise"]
+  red_flags: ["Pain that keeps getting worse each month", "Pain with fever or heavy bleeding", "Possible pregnancy"]
+  source: https://medlineplus.gov/periodpain.html
+- icd10: N92.0
+  name: Heavy menstrual bleeding
+  synonyms: ["menorrhagia", "heavy periods"]
+  body_systems: [Reproductive, Haematological]
+  india_common: true
+  symptoms: {heavy_periods: 1.0, fatigue: 0.5, pallor: 0.4, lower_abdominal_pain: 0.3}
+  first_line: [iron_supplement, hormonal_contraceptive]
+  self_care: ["Check haemoglobin", "Keep a record of periods"]
+  red_flags: ["Soaking a pad every hour", "Dizziness or fainting", "Bleeding after menopause"]
+  source: https://medlineplus.gov/vaginalbleeding.html
+- icd10: O14.90
+  name: Pre-eclampsia
+  synonyms: ["high BP in pregnancy", "toxaemia"]
+  body_systems: [Reproductive, Cardiovascular]
+  india_common: true
+  symptoms: {swelling_face_hands_pregnancy: 1.0, headache: 0.6, blurred_vision: 0.5, upper_abdominal_pain: 0.4, breathlessness: 0.2}
+  first_line: []
+  self_care: ["Keep every antenatal check-up", "BP is checked free at government centres"]
+  red_flags: ["Severe headache", "Blurred vision", "Pain under the ribs", "Seizure"]
+  source: https://medlineplus.gov/ency/article/000898.htm
+- icd10: O24.419
+  name: Gestational diabetes
+  synonyms: ["diabetes in pregnancy"]
+  body_systems: [Reproductive, Endocrine and metabolic]
+  india_common: true
+  symptoms: {excessive_thirst: 0.3, frequent_urination: 0.3, fatigue: 0.2}
+  first_line: [insulin, biguanide]
+  self_care: ["Usually found on a glucose test in pregnancy", "Follow the diet plan and walk after meals"]
+  red_flags: ["Very high sugar readings", "Reduced baby movements"]
+  source: https://medlineplus.gov/diabetesandpregnancy.html
+- icd10: N95.1
+  name: Menopause symptoms
+  synonyms: ["menopause", "change of life"]
+  body_systems: [Reproductive]
+  india_common: true
+  symptoms: {hot_flushes: 1.0, night_sweats: 0.6, irregular_periods: 0.6, insomnia: 0.4, irritability: 0.3, low_mood: 0.3}
+  first_line: [calcium_supplement, vitamin_d]
+  self_care: ["Layered clothing and a cool room", "Weight-bearing exercise for bone health"]
+  red_flags: ["Any bleeding after periods have stopped for a year"]
+  source: https://medlineplus.gov/menopause.html
+
+# ===================== bones, joints, muscles =====================
+- icd10: M17.9
+  name: Knee osteoarthritis
+  synonyms: ["knee arthritis", "ghutno ka ghisna", "wear and tear of knee"]
+  body_systems: [Musculoskeletal]
+  india_common: true
+  symptoms: {knee_pain: 1.0, joint_pain: 0.7, joint_swelling: 0.4, morning_stiffness: 0.3}
+  first_line: [paracetamol, physiotherapy, nsaid]
+  self_care: ["Quadriceps-strengthening exercises", "Weight loss if overweight", "Avoid squatting and cross-legged sitting when painful"]
+  red_flags: ["Hot, red, very swollen knee with fever", "Unable to bear weight"]
+  source: https://medlineplus.gov/osteoarthritis.html
+- icd10: M06.9
+  name: Rheumatoid arthritis
+  synonyms: ["RA", "gathiya"]
+  body_systems: [Musculoskeletal]
+  india_common: true
+  symptoms: {joint_pain: 0.9, joint_swelling: 0.8, morning_stiffness: 1.0, fatigue: 0.5}
+  first_line: [dmard]
+  self_care: ["See a rheumatologist early; early treatment protects joints", "Stay active"]
+  red_flags: ["Fever on DMARD treatment", "Breathlessness"]
+  source: https://medlineplus.gov/rheumatoidarthritis.html
+- icd10: M10.9
+  name: Gout
+  synonyms: ["uric acid arthritis", "gathiya"]
+  body_systems: [Musculoskeletal]
+  india_common: true
+  symptoms: {hot_red_joint: 1.0, joint_pain: 0.8, joint_swelling: 0.7}
+  first_line: [nsaid, colchicine, xanthine_oxidase_inhibitor]
+  self_care: ["Rest and raise the joint", "Cut down alcohol, red meat and sugary drinks", "Drink plenty of water"]
+  red_flags: ["Fever with a hot joint", "Several joints at once"]
+  source: https://medlineplus.gov/gout.html
+- icd10: M54.50
+  name: Low back pain
+  synonyms: ["kamar dard", "backache"]
+  body_systems: [Musculoskeletal]
+  india_common: true
+  symptoms: {back_pain: 1.0, muscle_cramps: 0.2}
+  first_line: [paracetamol, nsaid, physiotherapy]
+  self_care: ["Keep moving; bed rest slows recovery", "Heat packs", "Core-strengthening exercises"]
+  red_flags: ["Numbness around the genitals or buttocks", "Loss of bladder or bowel control", "Weakness in the legs", "Back pain with fever or weight loss"]
+  source: https://medlineplus.gov/backpain.html
+- icd10: M54.2
+  name: Neck pain (cervical spondylosis)
+  synonyms: ["cervical", "neck strain"]
+  body_systems: [Musculoskeletal]
+  india_common: true
+  symptoms: {neck_pain: 1.0, headache: 0.3, numbness_tingling: 0.3, shoulder_pain_stiffness: 0.2}
+  first_line: [paracetamol, nsaid, physiotherapy]
+  self_care: ["Screen at eye level", "Neck stretches", "Supportive pillow"]
+  red_flags: ["Weakness or clumsiness in the hands", "Neck stiffness with fever"]
+  source: https://medlineplus.gov/neckinjuriesanddisorders.html
+- icd10: M81.0
+  name: Osteoporosis
+  synonyms: ["weak bones"]
+  body_systems: [Musculoskeletal]
+  india_common: true
+  symptoms: {back_pain: 0.4, bone_pain: 0.3}
+  first_line: [bisphosphonate, calcium_supplement, vitamin_d]
+  self_care: ["Often silent until a fracture", "Weight-bearing exercise", "Prevent falls at home"]
+  red_flags: ["Sudden back pain after minor strain", "A fall with hip pain"]
+  source: https://medlineplus.gov/osteoporosis.html
+- icd10: M75.00
+  name: Frozen shoulder
+  synonyms: ["adhesive capsulitis", "stiff shoulder"]
+  body_systems: [Musculoskeletal]
+  india_common: true
+  symptoms: {shoulder_pain_stiffness: 1.0}
+  first_line: [physiotherapy, paracetamol, nsaid]
+  self_care: ["Gentle daily stretching", "More common with diabetes and thyroid problems"]
+  red_flags: ["Shoulder pain with chest pain or breathlessness"]
+  source: https://medlineplus.gov/shoulderinjuriesanddisorders.html
+
+# ===================== skin and hair =====================
+- icd10: L20.9
+  name: Atopic eczema
+  synonyms: ["eczema", "atopic dermatitis"]
+  body_systems: [Skin]
+  india_common: true
+  symptoms: {dry_itchy_skin: 1.0, itching: 0.9, rash: 0.6}
+  first_line: [emollient, topical_corticosteroid, antihistamine]
+  self_care: ["Moisturise often", "Mild soap", "Avoid scratching"]
+  red_flags: ["Weeping, crusted or painful skin with fever"]
+  source: https://medlineplus.gov/eczema.html
+- icd10: L40.0
+  name: Psoriasis
+  synonyms: ["chambal"]
+  body_systems: [Skin]
+  india_common: true
+  symptoms: {scaly_patches: 1.0, itching: 0.5, joint_pain: 0.3}
+  first_line: [topical_corticosteroid, emollient]
+  self_care: ["Moisturise daily", "Avoid smoking and alcohol"]
+  red_flags: ["Red skin over most of the body", "Painful swollen joints"]
+  source: https://medlineplus.gov/psoriasis.html
+- icd10: L70.0
+  name: Acne
+  synonyms: ["pimples", "muhase"]
+  body_systems: [Skin]
+  india_common: true
+  symptoms: {acne: 1.0}
+  first_line: [topical_retinoid, tetracycline]
+  self_care: ["Gentle face wash twice a day", "Do not squeeze pimples", "Avoid steroid-containing fairness creams"]
+  red_flags: ["Painful deep lumps with scarring", "Low mood because of acne"]
+  source: https://medlineplus.gov/acne.html
+- icd10: L50.9
+  name: Urticaria (hives)
+  synonyms: ["hives", "pitti", "skin allergy"]
+  body_systems: [Skin]
+  india_common: true
+  symptoms: {hives: 1.0, itching: 0.9, face_lip_tongue_swelling: 0.2}
+  first_line: [antihistamine]
+  self_care: ["Note possible triggers (food, medicines, infections)"]
+  red_flags: ["Swelling of lips or tongue", "Difficulty breathing or swallowing"]
+  source: https://medlineplus.gov/hives.html
+- icd10: L80
+  name: Vitiligo
+  synonyms: ["safed daag", "leucoderma"]
+  body_systems: [Skin]
+  india_common: true
+  symptoms: {skin_depigmentation: 1.0}
+  first_line: [topical_corticosteroid]
+  self_care: ["Sun protection for white patches", "It is not contagious"]
+  red_flags: ["A numb patch (see a doctor to rule out leprosy)"]
+  source: https://medlineplus.gov/vitiligo.html
+- icd10: L74.0
+  name: Prickly heat (miliaria)
+  synonyms: ["ghamoriyan", "heat rash"]
+  body_systems: [Skin]
+  india_common: true
+  symptoms: {prickly_heat: 1.0, itching: 0.7, rash: 0.5}
+  first_line: [emollient]
+  self_care: ["Stay cool", "Loose cotton clothes", "Avoid heavy creams"]
+  red_flags: ["Fever with the rash", "Signs of heat stroke"]
+  source: https://medlineplus.gov/heatillness.html
+- icd10: L21.9
+  name: Seborrhoeic dermatitis (dandruff)
+  synonyms: ["dandruff", "rusi"]
+  body_systems: [Skin]
+  india_common: true
+  symptoms: {dandruff: 1.0, itching: 0.5, scaly_patches: 0.3}
+  first_line: [antifungal_topical]
+  self_care: ["Anti-dandruff shampoo used regularly"]
+  red_flags: ["Widespread rash"]
+  source: https://medlineplus.gov/ency/article/000963.htm
+- icd10: L81.1
+  name: Melasma
+  synonyms: ["chaiyan", "pigmentation"]
+  body_systems: [Skin]
+  india_common: true
+  symptoms: {facial_pigmentation: 1.0}
+  first_line: [topical_retinoid]
+  self_care: ["Daily sunscreen", "Avoid over-the-counter creams containing steroids"]
+  red_flags: ["A patch that changes shape or bleeds"]
+  source: https://medlineplus.gov/ency/article/000836.htm
+- icd10: L65.9
+  name: Hair loss
+  synonyms: ["hair fall", "baal girna"]
+  body_systems: [Skin]
+  india_common: true
+  symptoms: {hair_loss: 1.0}
+  first_line: []
+  self_care: ["Check for thyroid problems, low iron and vitamin D", "Hair fall often follows fever or stress and recovers"]
+  red_flags: ["Patchy bald spots", "Hair loss with weight change or fatigue"]
+  source: https://medlineplus.gov/hairloss.html
+
+# ===================== eyes =====================
+- icd10: H25.9
+  name: Cataract
+  synonyms: ["motiyabind"]
+  body_systems: [Eye]
+  india_common: true
+  symptoms: {blurred_vision: 1.0}
+  first_line: [surgery_referral]
+  self_care: ["Surgery is free at many government hospitals and camps"]
+  red_flags: ["Sudden loss of vision", "Eye pain"]
+  source: https://medlineplus.gov/cataract.html
+- icd10: H40.9
+  name: Glaucoma
+  synonyms: ["kala motia"]
+  body_systems: [Eye]
+  india_common: true
+  symptoms: {blurred_vision: 0.6, eye_pain: 0.3, headache: 0.2}
+  first_line: [glaucoma_drops]
+  self_care: ["Eye pressure check every year after age 40", "Never stop glaucoma drops without the eye doctor"]
+  red_flags: ["Sudden painful red eye with blurred vision and vomiting"]
+  source: https://medlineplus.gov/glaucoma.html
+
+# ===================== emergencies =====================
+- icd10: T78.2XXA
+  name: Anaphylaxis
+  synonyms: ["severe allergic reaction", "allergic shock"]
+  body_systems: [Skin, Respiratory]
+  india_common: true
+  symptoms: {face_lip_tongue_swelling: 1.0, breathlessness: 0.8, hives: 0.7, wheezing: 0.5, dizziness: 0.5, vomiting: 0.3, fainting: 0.4}
+  first_line: [epinephrine]
+  self_care: ["Call 112 or 108 now", "Use an adrenaline auto-injector if one was prescribed"]
+  red_flags: ["Any swelling of the throat or tongue", "Breathing difficulty", "Fainting"]
+  source: https://medlineplus.gov/ency/article/000844.htm
+- icd10: T67.01XA
+  name: Heat stroke
+  synonyms: ["loo lagna", "sunstroke"]
+  body_systems: [Neurological]
+  india_common: true
+  symptoms: {heat_exposure: 1.0, high_fever: 0.8, confusion: 0.8, headache: 0.5, dizziness: 0.6, vomiting: 0.4, unconsciousness: 0.4}
+  first_line: [oral_rehydration]
+  self_care: ["Call 112 or 108", "Move to shade, remove extra clothing, cool with water and fanning"]
+  red_flags: ["Confusion", "Seizure", "Not sweating with very hot skin"]
+  source: https://medlineplus.gov/heatillness.html
+- icd10: T63.001A
+  name: Snake bite
+  synonyms: ["snakebite", "saanp ka kaatna"]
+  body_systems: [Haematological, Neurological]
+  india_common: true
+  symptoms: {snake_bite: 1.0, bleeding_gums: 0.3, blurred_vision: 0.3, difficulty_swallowing: 0.3}
+  first_line: [antivenom]
+  self_care: ["Call 108 and go to a hospital with anti-snake venom now", "Keep the bitten limb still", "Do not cut, suck or tie a tight band on the bite"]
+  red_flags: ["Any snake bite is an emergency"]
+  source: https://www.who.int/news-room/fact-sheets/detail/snakebite-envenoming

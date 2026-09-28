@@ -3,14 +3,16 @@ import anything, and nothing imports it (import-linter enforces this)."""
 
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from typing import Any
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from redis.asyncio import Redis
 
+from etheria.api.chat_wiring import build_chat
 from etheria.api.errors import install_error_handlers
 from etheria.api.middleware import RequestContextMiddleware
-from etheria.api.routers import health, upload
+from etheria.api.routers import chat, health, history, upload
 from etheria.auth import router as auth_router
 from etheria.core.crypto import encryption_key
 from etheria.core.logging import configure_logging
@@ -20,7 +22,9 @@ from etheria.ingestion.storage import FileStore
 from etheria.knowledge.neo4j import create_driver
 
 
-def create_app(settings: Settings | None = None) -> FastAPI:
+def create_app(
+    settings: Settings | None = None, chat_overrides: dict[str, Any] | None = None
+) -> FastAPI:
     settings = settings or get_settings()
     configure_logging(settings.log_level)
 
@@ -33,9 +37,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         app.state.neo4j = create_driver(settings)
         app.state.temporal = None  # connected on first use (upload, readiness)
         app.state.file_store = FileStore(settings.upload_dir, encryption_key(settings))
+        stack = await build_chat(
+            settings, app.state.db, app.state.redis, app.state.neo4j, chat_overrides
+        )
+        app.state.chat = stack.service
         try:
             yield
         finally:
+            await stack.close()
             await app.state.neo4j.close()
             await app.state.redis.aclose()
             await app.state.db.dispose()
@@ -55,4 +64,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(health.router)
     app.include_router(auth_router.router)
     app.include_router(upload.router)
+    app.include_router(chat.router)
+    app.include_router(history.router)
     return app

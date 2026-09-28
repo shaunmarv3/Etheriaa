@@ -8,11 +8,11 @@ from uuid import UUID
 
 import psycopg
 from langchain_core.language_models import BaseChatModel
-from langchain_core.language_models.fake_chat_models import GenericFakeChatModel
 from langchain_core.messages import AIMessage, AIMessageChunk, BaseMessage
 from langchain_core.outputs import ChatGeneration, ChatGenerationChunk, ChatResult
 from langchain_core.runnables import RunnableLambda
 
+from etheria.graph.audit import AuditVerdict
 from etheria.graph.deps import GraphDeps
 from etheria.graph.schemas import ClinicalOutput, TriageAssessment, Understanding
 from etheria.knowledge.conditions import ConditionHit, Exploration
@@ -76,8 +76,31 @@ class BrokenStream(BaseChatModel):
         raise RuntimeError("model down")
 
 
-def streaming(text: str) -> GenericFakeChatModel:
-    return GenericFakeChatModel(messages=iter([AIMessage(text)]))
+class RepeatStream(BaseChatModel):
+    """Streams the same text word by word on every call (any number of turns)."""
+
+    text: str
+    calls: int = 0
+
+    @property
+    def _llm_type(self) -> str:
+        return "repeat"
+
+    def _generate(self, messages, stop=None, run_manager=None, **kw):
+        self.calls += 1
+        return ChatResult(generations=[ChatGeneration(message=AIMessage(self.text))])
+
+    async def _astream(self, messages, stop=None, run_manager=None, **kw) -> AsyncIterator:
+        self.calls += 1
+        words = self.text.split(" ")
+        for i, word in enumerate(words):
+            yield ChatGenerationChunk(
+                message=AIMessageChunk(content=word + (" " if i < len(words) - 1 else ""))
+            )
+
+
+def streaming(text: str) -> RepeatStream:
+    return RepeatStream(text=text)
 
 
 def tool_call(name: str, args: dict[str, Any], call_id: str = "c1") -> AIMessage:
@@ -123,6 +146,7 @@ def _default(node: str) -> Any:
         "understand": Understanding(intent="general_health"),
         "triage": TriageAssessment(level="GREEN", reasons=["general question"]),
         "clinical_structuring": ClinicalOutput(follow_up_questions=["How long has it lasted?"]),
+        "audit": AuditVerdict(),
     }[node]
 
 

@@ -232,6 +232,13 @@ Built with `langchain.agents.create_agent` (DeepSeek). It returns a compiled gra
 
 **Interaction semantics:** a pair with no edge is reported as `not_found`, never as safe, and names that could not be resolved are reported explicitly.
 
+**Drug cautions from the user's own record (added 2026-09-28, built in M4).** Drug-drug checks do not cover "this medicine with *my* report". A curated table, `safety/drug_cautions.yaml`, holds drug-class x lab or condition cautions, each with a rationale and a public source: for example NSAID + high creatinine / low eGFR / low platelets / pregnancy / peptic ulcer; metformin + low eGFR; ACE inhibitor or ARB + high potassium or pregnancy; anticoagulant + low platelets. `check_interactions` evaluates it in code against the user's abnormal lab rows, extracted conditions and a stated pregnancy, and returns `cautions: [{drug, trigger, value, rationale, source}]` beside the interaction findings. A caution tells the user which value on which report matters and that a doctor should confirm; it never says "do not take", never says "safe", never gives a dose. No caution found is reported as "no recorded caution for your values", not as clearance.
+
+**Known M2 gaps to fix in M4 (found by probing the seeded graph, 2026-09-28):**
+- *Condition ranking.* `explore_conditions` sums matched weights, so headache alone ranks meningitis and Japanese encephalitis 2nd and 3rd. Rank by coverage instead (matched weight / the condition's total weight, then summed weight as the tie-break) so a condition whose cardinal symptoms are absent drops; pass the stated duration to the agent so acute infections are not offered for a 3-year symptom.
+- *Short brand names.* "Brufen" scores 0.39 on `similarity` against "Brufen 400 Tablet" and is unresolved; `word_similarity` scores 1.0. Use word similarity for the trigram step. When close candidates differ (Brufen vs Brufen MR = + tizanidine), keep the ambiguity but check the ingredients every candidate shares (ibuprofen) and name the candidates.
+- *Lay terms.* "tinnitus" is not a lay term of the ringing-in-the-ears symptom; the full-text fallback needs every word, so the `understand` node must pass clean symptom phrases, not whole sentences. Add the missing terms found by the eval.
+
 ### 4.5a End to end: from message to reply
 
 Every message passes the same deterministic shell; only the retrieval agent chooses what to fetch, and it may fetch nothing. Code steps are fixed and cheap; LLM steps are marked. The M2 knowledge layer (Neo4j + Postgres drug tables) is local data loaded at seed time: at chat time nothing queries DDInter or the brand dataset over the network.
@@ -282,6 +289,8 @@ Seed-time only (never per message): DDInter and the Indian Medicine Dataset (dow
 2. Definitive diagnosis phrasing ("you have X", "you are suffering from X") is rewritten to "this may be consistent with X".
 3. Claims that a combination is safe, or has no interaction, are replaced with the not-found wording.
 4. Non-Indian emergency numbers (911, 999) are rewritten to 112.
+
+**No evidence.** When the agent's tools return nothing relevant (a condition outside the curated graph and no MedlinePlus or PubMed hit), the reply says it found no verified source, gives only general safe guidance plus the red flags that apply, and suggests seeing a doctor. It never fills the gap with confident specifics.
 
 **After.** `finalize` appends the disclaimer, re-checks the RED header, and starts an LLM audit (`deepseek-v4-pro`, a larger model than the `deepseek-flash` generator; same vendor, because the owner holds one key) that grades the reply against the product rules. The result is stored on the message and aggregated by the eval report. The audit is non-blocking by design: the answer has already streamed, so its job is measurement. The blocking controls are the deterministic ones.
 
@@ -605,7 +614,7 @@ Copied from `D:\Etheria\etheria` into `frontend/`; the original is not modified.
 | Integration | Repositories, RLS, migrations, hybrid search, Neo4j queries, the Temporal workflow | Real Postgres, Neo4j and Redis from `infra/`; the Temporal test environment |
 | Contract | The SSE event sequence and payload keys against `frontend/src/lib/types.ts`; REST response shapes | Snapshot tests pinned to the TypeScript types |
 | Extraction eval | Synthetic fixtures -> expected rows | Precision and recall report; grounding rejection counts |
-| Graph eval | At least 30 scenarios across synthetic user profiles: routing, tool choice, citation of lab values, refusals, RED handling, resistance to injected reports, "never safe to combine" | Real models, opt-in (`uv run etheria eval`); report written to `docs/` |
+| Graph eval | At least 30 scenarios across synthetic user profiles: routing, tool choice, citation of lab values, refusals, RED handling, resistance to injected reports, "never safe to combine", drug cautions from the user's reports, questions outside the curated graph. The first 26 are drafted in `backend/tests/evals/graph_scenarios.yaml` (6 from the owner's own questions, 20 typical ones; 14 safety, 12 quality) | Real models, opt-in (`uv run etheria eval`); report written to `docs/` |
 | Security | Cross-user attempts (API, tool, SQL under RLS), token reuse, rate limits, upload fuzzing, an injection corpus | pytest |
 
 **Synthetic fixtures** (`tests/fixtures/reports/`) are generated by a ReportLab script, so the ground truth is known by construction: five lab reports in Indian diagnostic-chain layouts (full-body checkup, thyroid profile, lipid profile, CBC, HbA1c + glucose), one discharge summary, one digital prescription, a scanned-image copy of a lab report (to prove no numbers are extracted from images), and a report containing an injected instruction. All carry fake PII, so masking is tested too.
@@ -624,7 +633,7 @@ Copied from `D:\Etheria\etheria` into `frontend/`; the original is not modified.
 | **M1 Foundation** | Repo, `uv`, settings, logging, infra compose, Alembic schema (RLS, partitions), auth backend, health endpoints, test harness, import-linter | Auth flow and RLS tests green; compose up within budget |
 | **M2 Knowledge** | Medical API ports, curated data files (owner-reviewed), seeder with verification | Seeder canaries pass; `docs/NUMBERS.md` written |
 | **M3 Ingestion** | Upload API, encrypted storage, the Temporal workflow and activities, synthetic fixture generator, extraction eval | The extraction criterion in 1.2 is met; the workflow survives a worker restart mid-run |
-| **M4 Reasoning graph** | State, nodes, retrieval agent and tools, triage, `StreamGuard`, generation, finalize, SSE, history, regenerate, graph eval | The graph-eval criterion in 1.2 is met; contract tests green |
+| **M4 Reasoning graph** | State, nodes, retrieval agent and tools, triage, `StreamGuard`, generation, finalize, SSE, history, regenerate, graph eval; drug cautions from the user's record (4.5), the no-evidence rule (4.6), and the M2 gaps listed in 4.5 (coverage ranking, short brand names, lay terms) | The graph-eval criterion in 1.2 is met; contract tests green |
 | **M5 Voice** | Speech-to-text on `/chat/stream`, TTS endpoint | An end-to-end voice turn works |
 | **M6 Frontend** | Copy, auth swap, removed features, download fix | The full end-to-end flow in 1.2 works in the browser |
 | **M7 Hardening** | Security suite, pruning and partition schedules, retention, latency and storage measurements, `ARCHITECTURE.md` (generated diagram), `SECURITY.md`, final numbers | Every success criterion in 1.2 holds |

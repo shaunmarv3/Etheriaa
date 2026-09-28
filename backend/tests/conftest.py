@@ -5,16 +5,18 @@ import asyncio
 import base64
 import os
 import sys
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Iterator
 from pathlib import Path
 
 import httpx
+import psycopg
 import pytest
 from dotenv import dotenv_values
 from fastapi import FastAPI
 from support import running_app
 
 from etheria.core.settings import Settings
+from etheria.db.session import Database
 
 if sys.platform == "win32":
     # psycopg async cannot use the ProactorEventLoop (see CLAUDE.md).
@@ -72,3 +74,48 @@ def app(settings: Settings) -> FastAPI:
 async def client(app: FastAPI) -> AsyncIterator[httpx.AsyncClient]:
     async with running_app(app) as c:
         yield c
+
+
+def _recreate_database(name: str) -> None:
+    with psycopg.connect(OWNER_URL, autocommit=True) as conn:
+        conn.execute(f"DROP DATABASE IF EXISTS {name} WITH (FORCE)")
+        conn.execute(f"CREATE DATABASE {name}")
+        conn.execute(f"GRANT CONNECT ON DATABASE {name} TO etheria_app")
+
+
+@pytest.fixture(scope="session")
+def migrated_db() -> str:
+    """Recreate etheria_test and migrate it to head, once per test session."""
+    from etheria.db.migrate import upgrade
+
+    _recreate_database(TEST_DB)
+    upgrade(with_db(OWNER_URL, TEST_DB))
+    return TEST_DB
+
+
+@pytest.fixture
+def owner_conn(migrated_db: str) -> Iterator[psycopg.Connection]:
+    with psycopg.connect(with_db(OWNER_URL, TEST_DB), autocommit=True) as conn:
+        yield conn
+
+
+@pytest.fixture
+def app_conn(migrated_db: str) -> Iterator[psycopg.Connection]:
+    with psycopg.connect(with_db(APP_URL, TEST_DB), autocommit=True) as conn:
+        yield conn
+
+
+@pytest.fixture
+async def db(settings: Settings, migrated_db: str) -> AsyncIterator[Database]:
+    database = Database(settings.sqlalchemy_url)
+    yield database
+    await database.dispose()
+
+
+@pytest.fixture
+def scratch_database() -> Iterator[str]:
+    name = "etheria_scratch"
+    _recreate_database(name)
+    yield with_db(OWNER_URL, name)
+    with psycopg.connect(OWNER_URL, autocommit=True) as conn:
+        conn.execute(f"DROP DATABASE IF EXISTS {name} WITH (FORCE)")

@@ -36,6 +36,21 @@ class Conflict(AppError):
     code = "conflict"
 
 
+class PayloadTooLarge(AppError):
+    status_code = 413
+    code = "file_too_large"
+
+
+class UnsupportedMediaType(AppError):
+    status_code = 415
+    code = "unsupported_type"
+
+
+class ServiceUnavailable(AppError):
+    status_code = 503
+    code = "service_unavailable"
+
+
 class RateLimited(AppError):
     status_code = 429
     code = "rate_limited"

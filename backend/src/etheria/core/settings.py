@@ -45,6 +45,11 @@ class Settings(BaseSettings):
 
     # Seed downloads (DDInter is never committed: backend/data/ is gitignored).
     seed_dir: Path = BACKEND_DIR / "data" / "seed"
+    # Encrypted uploads (spec 5.2); gitignored like the seed downloads.
+    upload_dir: Path = BACKEND_DIR / "data" / "uploads"
+    # Tesseract binary for OCR; None = PATH, then the default Windows install path.
+    tesseract_cmd: str | None = None
+    embedding_model: str = "BAAI/bge-large-en-v1.5"
 
     @field_validator("jwt_secret")
     @classmethod

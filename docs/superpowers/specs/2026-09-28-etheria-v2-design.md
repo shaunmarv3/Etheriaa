@@ -497,6 +497,73 @@ Child tables carry composite foreign keys to their parent's `(id, user_id)` (mes
 
 **Erasure** (`DELETE /user`): one transaction removes the user's conversations, messages, documents and their encrypted files, chunks, lab results, medications, refresh tokens and checkpoint threads. `audit_log` rows are retained for the one-year log requirement. They contain no health content, and on erasure their `user_ref` is replaced by an HMAC of the user ID.
 
+### 7.1 Entity relationships (as built in migrations 0001 and 0002)
+
+```mermaid
+erDiagram
+    users ||--o{ refresh_tokens : "has"
+    users ||--o{ conversations : "owns"
+    users ||--o{ documents : "uploads"
+    conversations ||--o{ messages : "(conversation_id, user_id)"
+    documents ||--o{ document_chunks : "(document_id, user_id)"
+    documents ||--o{ lab_results : "(document_id, user_id)"
+    documents ||--o{ medications : "(document_id, user_id)"
+
+    users { uuid id PK "citext email UNIQUE" }
+    refresh_tokens { uuid id PK "token_hash UNIQUE, family_id" }
+    conversations { uuid id PK "UNIQUE (id, user_id), soft delete" }
+    messages { uuid id PK "PK (id, created_at), monthly partitions" }
+    documents { uuid id PK "UNIQUE (id, user_id), UNIQUE (user_id, sha256)" }
+    document_chunks { uuid id PK "embedding vector(1024), tsv tsvector" }
+    lab_results { uuid id PK "value_text + value_numeric, flag by code" }
+    medications { uuid id PK "name_raw, ingredients text[]" }
+```
+
+Not drawn: `audit_log` (monthly partitions, no foreign key: `user_ref` is text so it can be pseudonymised on erasure), `medicine_brands` and `drug_synonyms` (public reference data, no RLS, read-only to the app), and the LangGraph checkpoint tables (created by `AsyncPostgresSaver.setup()`).
+
+Design rules that shaped the schema:
+- **Every user-data table carries `user_id`**, even when it could be reached through a parent. RLS policies then need no joins, and every query filters on an indexed column.
+- **Composite foreign keys `(parent_id, user_id)`** point at a `UNIQUE (id, user_id)` on the parent. Foreign-key checks bypass RLS, so a plain `document_id` foreign key would let one user attach rows to another user's document.
+- **Two roles.** The owner role (`etheria`) runs migrations and the seeder; the app role (`etheria_app`) is not a table owner, so RLS applies to it. `app_current_user()` reads `app.user_id`, which `Database.for_user` sets per transaction with `set_config(..., true)`, so the value never leaks to the next user of a pooled connection.
+- **Normalise what we query by field, JSONB for what we only display** (spec 5.5): lab values and medications are rows; discharge and imaging details are `documents.extracted`.
+- **Partition what grows without bound** (`messages`, `audit_log`, monthly). Retention becomes dropping a partition.
+
+### 7.2 Vector storage (pgvector)
+
+pgvector is a Postgres extension that adds a `vector(n)` column type, distance operators and approximate-nearest-neighbour indexes. Vectors therefore live in an ordinary table next to their text, owner and page, under the same RLS and transactions as everything else: no separate vector database.
+
+```sql
+CREATE EXTENSION IF NOT EXISTS vector;                  -- 0001, once per database
+
+CREATE TABLE document_chunks (                          -- 0002
+  ...,
+  content   text NOT NULL,
+  embedding vector(1024) NOT NULL,                      -- BGE-large-en-v1.5 output size
+  tsv tsvector GENERATED ALWAYS AS (to_tsvector('simple', content)) STORED
+);
+CREATE INDEX document_chunks_embedding_idx
+  ON document_chunks USING hnsw (embedding vector_cosine_ops);   -- dense search
+CREATE INDEX document_chunks_tsv_idx
+  ON document_chunks USING gin (tsv);                             -- keyword search
+```
+
+- **The dimension is fixed by the model.** `vector(1024)` accepts exactly 1024 floats; changing the embedding model to one with a different size needs a migration and a re-embed.
+- **Distance.** `<=>` is cosine distance (`1 - cosine similarity`); `<->` is L2 and `<#>` negative inner product. The index's operator class must match the operator used in queries: `vector_cosine_ops` serves `ORDER BY embedding <=> $1`.
+- **HNSW** is a graph index for approximate search: fast and good recall without a training step (unlike IVFFlat, which needs data before it is built). With a `WHERE user_id = ...` filter, a plain HNSW scan can return fewer than k rows, so queries run `SET LOCAL hnsw.iterative_scan = relaxed_order` (pgvector 0.8) and keep scanning until k matching rows are found (5.7).
+- **Writing.** Ingestion inserts the embedding as a parameter (`pgvector.sqlalchemy.Vector` in the ORM, or the text form `'[0.01, -0.2, ...]'`), in the same transaction as the lab rows (5.3 step 7).
+- **Reading** (M4, `search_my_reports`):
+
+```sql
+SET LOCAL hnsw.iterative_scan = relaxed_order;
+SELECT id, document_id, page, source_kind, content, 1 - (embedding <=> $1) AS similarity
+FROM document_chunks
+WHERE user_id = app_current_user()
+ORDER BY embedding <=> $1
+LIMIT 20;
+```
+
+The keyword half runs `tsv @@ websearch_to_tsquery('simple', $2)` ranked by `ts_rank_cd`, and the two ranked lists are fused with reciprocal rank fusion (5.7, D14).
+
 ## 8. Scale and caching
 
 ### 8.1 Messages are not the scaling problem

@@ -5,10 +5,14 @@ import asyncio
 import base64
 import os
 import sys
+from collections.abc import AsyncIterator
 from pathlib import Path
 
+import httpx
 import pytest
 from dotenv import dotenv_values
+from fastapi import FastAPI
+from support import running_app
 
 from etheria.core.settings import Settings
 
@@ -55,3 +59,16 @@ def settings() -> Settings:
         data_encryption_key=base64.b64encode(bytes(32)).decode(),
         cors_origins=["http://localhost:3000"],
     )
+
+
+@pytest.fixture
+def app(settings: Settings) -> FastAPI:
+    from etheria.api.app import create_app
+
+    return create_app(settings)
+
+
+@pytest.fixture
+async def client(app: FastAPI) -> AsyncIterator[httpx.AsyncClient]:
+    async with running_app(app) as c:
+        yield c

@@ -12,6 +12,7 @@ from redis.asyncio import Redis
 from etheria.api.errors import install_error_handlers
 from etheria.api.middleware import RequestContextMiddleware
 from etheria.api.routers import health
+from etheria.auth import router as auth_router
 from etheria.core.logging import configure_logging
 from etheria.core.settings import Settings, get_settings
 from etheria.db.session import Database
@@ -52,4 +53,5 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.add_middleware(RequestContextMiddleware)  # outermost: every response gets X-Request-ID
     install_error_handlers(app)
     app.include_router(health.router)
+    app.include_router(auth_router.router)
     return app

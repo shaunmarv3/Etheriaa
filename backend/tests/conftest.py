@@ -13,6 +13,7 @@ import psycopg
 import pytest
 from dotenv import dotenv_values
 from fastapi import FastAPI
+from redis.asyncio import Redis
 from support import running_app
 
 from etheria.core.settings import Settings
@@ -119,3 +120,19 @@ def scratch_database() -> Iterator[str]:
     yield with_db(OWNER_URL, name)
     with psycopg.connect(OWNER_URL, autocommit=True) as conn:
         conn.execute(f"DROP DATABASE IF EXISTS {name} WITH (FORCE)")
+
+
+@pytest.fixture
+async def clean_redis(settings: Settings) -> AsyncIterator[None]:
+    redis = Redis.from_url(settings.redis_url)
+    await redis.flushdb()
+    yield
+    await redis.aclose()
+
+
+@pytest.fixture
+async def api_client(
+    app: FastAPI, migrated_db: str, clean_redis: None
+) -> AsyncIterator[httpx.AsyncClient]:
+    async with running_app(app) as c:
+        yield c

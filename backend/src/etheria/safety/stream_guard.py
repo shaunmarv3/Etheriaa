@@ -20,7 +20,10 @@ from etheria.safety.texts import DOSE_REPLACEMENT, NOT_FOUND_WORDING
 _I = re.IGNORECASE
 
 _UNITS = r"(?:mg|mcg|µg|ug|g|gm|gms|grams?|ml|iu|units?)"
-_AMOUNT = re.compile(rf"\b\d+(?:[.,]\d+)?\s?{_UNITS}\b(?!\s*/)", _I)
+# An amount, but not a lab unit (mg/dL) and not a product name's strength
+# ("Crocin 1000mg Tablet"): those are followed by a slash or a dosage form.
+_FORM = r"(?:tablets?|tabs?|capsules?|caps?|syrup|suspension|injection|gel|cream|drops?|sachets?)"
+_AMOUNT = re.compile(rf"\b\d+(?:[.,]\d+)?\s?{_UNITS}\b(?!\s*/)(?!\s+{_FORM}\b)", _I)
 _NUM = r"(?:\d+(?:\.\d+)?(?:\s*-\s*\d+)?|one|two|three|four|five|half|1/2)"
 _COUNT = re.compile(
     rf"\b{_NUM}\s+(?:tablets?|tabs?|pills?|capsules?|caps?|teaspoons?|tsp|tablespoons?|"
@@ -36,7 +39,8 @@ _FREQ = re.compile(
 )
 _FREQ_ABBR = re.compile(r"\b(?:OD|BD|BID|TDS|TID|QID|QDS|HS|SOS)\b")
 _INTAKE = re.compile(
-    r"\b(?:take|taking|takes|dose|dosage|doses|give|given|swallow|chew|maximum|max|"
+    # not a bare "max": it is part of brand names ("Cold & Flu Max")
+    r"\b(?:take|taking|takes|dose|dosage|doses|give|given|swallow|chew|maximum|"
     r"up\s+to|no\s+more\s+than|at\s+a\s+time)\b",
     _I,
 )
@@ -67,8 +71,12 @@ _SAFE = [
     )
 ]
 _SAFE_NEGATED = re.compile(r"(?:\bnot|n't|\bnever|\bun)\s*(?:\w+\s+){0,1}$", _I)
+# The not-found framing the product rules ask for: "no interaction is recorded in
+# the sources", "that does not mean it is safe", "confirm with a pharmacist".
 _FRAMED = re.compile(
-    r"does\s*n[o']t\s+mean|not\s+mean|confirm\s+with|not\s+a\s+(?:guarantee|clearance)", _I
+    r"does\s*n[o']t\s+mean|not\s+mean|confirm\s+with|not\s+a\s+(?:guarantee|clearance)"
+    r"|\bno\s+interactions?\b.{0,60}?\b(?:recorded|found|listed|documented)\b",
+    _I,
 )
 
 _CALL = re.compile(r"\b(?:call|dial|ring|phone|emergency)\b", _I)

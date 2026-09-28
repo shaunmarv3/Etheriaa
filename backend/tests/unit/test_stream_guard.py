@@ -113,3 +113,26 @@ def test_hits_are_recorded() -> None:
     g = StreamGuard()
     _stream(["You have typhoid. Call 911."], g)
     assert g.hits == ["diagnosis", "foreign_number"]
+
+
+def test_product_names_with_strengths_are_not_doses() -> None:
+    s = (
+        "Crocin could be any of Crocin 1000mg Tablet, Crocin Advance Tablet, "
+        "Crocin Cold & Flu Max Tablet; all of them contain Acetaminophen [1]."
+    )
+    assert apply_rules(s) == (s, [])
+    assert apply_rules("Dolo 650 Tablet and Calpol 500mg Tablet both contain paracetamol.")[1] == []
+
+
+def test_a_strength_with_an_instruction_is_still_a_dose() -> None:
+    assert apply_rules("Take one Crocin 500mg Tablet every 6 hours.")[1] == ["dose"]
+    assert apply_rules("The maximum is 4000 mg a day.")[1] == ["dose"]
+
+
+def test_a_recorded_in_the_sources_statement_is_not_a_safe_claim() -> None:
+    for s in (
+        "No interaction is recorded between paracetamol and telmisartan in the sources I checked.",
+        "No interaction was found in DDInter for this pair.",
+    ):
+        assert apply_rules(s) == (s, []), s
+    assert apply_rules("There is no known interaction between them.")[1] == ["safe_claim"]

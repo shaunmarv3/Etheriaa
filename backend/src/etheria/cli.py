@@ -32,3 +32,19 @@ def migrate() -> None:
 
     upgrade(get_settings().database_owner_url)
     typer.echo("database migrated to head")
+
+
+@app.command()
+def seed(
+    skip_codes: bool = typer.Option(False, help="Skip phase 7 (external code lookups)."),
+    verify_only: bool = typer.Option(False, help="Only phase 8: counts, canaries, NUMBERS.md."),
+) -> None:
+    """Load the knowledge layer (spec 6.4). Idempotent; exits non-zero on any failure."""
+    from etheria.core.settings import get_settings
+    from etheria.seed.runner import run_seed
+
+    code = asyncio.run(
+        run_seed(get_settings(), skip_codes=skip_codes, verify_only=verify_only),
+        loop_factory=_loop_factory(),
+    )
+    raise typer.Exit(code)

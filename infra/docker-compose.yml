@@ -1,0 +1,62 @@
+# Infrastructure only (spec 16). The Python app runs natively via uv.
+# Budget: images ~1.5 GB + volumes < 1 GB after seeding.
+name: etheria
+
+services:
+  postgres:
+    image: pgvector/pgvector:0.8.6-pg16-trixie
+    environment:
+      POSTGRES_USER: etheria
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-etheria_dev}
+      POSTGRES_DB: etheria
+      ETHERIA_APP_PASSWORD: ${ETHERIA_APP_PASSWORD:-etheria_app_dev}
+    ports: ["5433:5432"]  # host 5432 is a native PostgreSQL 18 service
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U etheria -d etheria"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  neo4j:
+    image: neo4j:5.26.31-community
+    environment:
+      NEO4J_AUTH: neo4j/${NEO4J_PASSWORD:-etheria_dev_pw}
+      NEO4J_server_memory_heap_initial__size: 256m
+      NEO4J_server_memory_heap_max__size: 512m
+      NEO4J_server_memory_pagecache_size: 256m
+    ports: ["7474:7474", "7687:7687"]
+    volumes:
+      - neo4jdata:/data
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:7474 >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    # Cache + rate-limit counters only: nothing here must survive a restart.
+    command: ["redis-server", "--save", "", "--appendonly", "no", "--maxmemory", "256mb", "--maxmemory-policy", "allkeys-lru"]
+    ports: ["6380:6379"]  # host 6379 is a Redis inside WSL
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  temporal:
+    image: temporalio/temporal:1.9.1
+    # The image's entrypoint is the `temporal` CLI and it runs as user
+    # `temporal`, so the SQLite file lives in that user's home directory.
+    command: ["server", "start-dev", "--ip", "0.0.0.0", "--ui-ip", "0.0.0.0", "--db-filename", "/home/temporal/temporal.db"]
+    ports: ["7233:7233", "8233:8233"]
+    volumes:
+      - temporaldata:/home/temporal
+
+volumes:
+  pgdata:
+  neo4jdata:
+  temporaldata:

@@ -6,6 +6,13 @@ from typing import Literal
 from pydantic import BaseModel
 
 Flag = Literal["low", "normal", "high", "unknown"]
+SourceKind = Literal["text_layer", "ocr"]
+
+
+class PageText(BaseModel):
+    page: int  # 1-based
+    text: str  # PII-masked by the time it leaves the parse activity
+    source_kind: SourceKind
 
 
 class LabRowDraft(BaseModel):

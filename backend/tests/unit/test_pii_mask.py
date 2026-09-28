@@ -76,6 +76,14 @@ def test_address_line_masked() -> None:
     assert "Age: 34" in out.text
 
 
+def test_label_value_stops_at_column_gap() -> None:
+    # Reports print two fields per line; the second column must survive.
+    line = "Patient Name: Rahul Verma          Age/Sex: 34 Y / Male"
+    assert mask_pii(line).text == "Patient Name: [NAME]          Age/Sex: 34 Y / Male"
+    line = "UHID : NWD-55321\tReport Date: 20-Jan-2026"
+    assert mask_pii(line).text == "UHID : [ID]\tReport Date: 20-Jan-2026"
+
+
 def test_age_and_sex_kept() -> None:
     line = "Age/Sex: 34 Y / Male   Gender: Male"
     assert mask_pii(line).text == line

@@ -30,6 +30,7 @@ dependencies = [
     "pymupdf>=1.26,<2",
     "pillow>=11,<12",
     "python-multipart>=0.0.20,<1",
+    "pytesseract>=0.3.13,<0.4",
 ]
 
 [project.scripts]
@@ -41,6 +42,7 @@ dev = [
     "pytest-asyncio>=1.4,<2",
     "ruff>=0.16,<0.17",
     "import-linter>=2.15,<3",
+    "reportlab>=4.4,<5",
 ]
 
 [build-system]

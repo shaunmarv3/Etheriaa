@@ -1,0 +1,646 @@
+{
+  "lab_fullbody.pdf": {
+    "doc_type": "lab_report",
+    "sex": "female",
+    "text_layer": true,
+    "lab_name": "Northwind Diagnostics",
+    "report_date": "12-Mar-2026",
+    "lab_rows": [
+      {
+        "test_name": "Haemoglobin",
+        "value_text": "10.4",
+        "unit": "g/dL",
+        "ref_range_text": "12.0 - 15.0",
+        "flag": "low",
+        "page": 1
+      },
+      {
+        "test_name": "Total WBC Count",
+        "value_text": "7,200",
+        "unit": "/cumm",
+        "ref_range_text": "4,000 - 10,000",
+        "flag": "normal",
+        "page": 1
+      },
+      {
+        "test_name": "Platelet Count",
+        "value_text": "1,90,000",
+        "unit": "/cumm",
+        "ref_range_text": "1,50,000 - 4,10,000",
+        "flag": "normal",
+        "page": 1
+      },
+      {
+        "test_name": "ESR",
+        "value_text": "18",
+        "unit": "mm/hr",
+        "ref_range_text": "0 - 20",
+        "flag": "normal",
+        "page": 1
+      },
+      {
+        "test_name": "Serum Iron",
+        "value_text": "42",
+        "unit": "µg/dL",
+        "ref_range_text": "60 - 170",
+        "flag": "low",
+        "page": 1
+      },
+      {
+        "test_name": "Ferritin",
+        "value_text": "8.2",
+        "unit": "ng/mL",
+        "ref_range_text": "13 - 150",
+        "flag": "low",
+        "page": 1
+      },
+      {
+        "test_name": "TIBC",
+        "value_text": "420",
+        "unit": "µg/dL",
+        "ref_range_text": "250 - 450",
+        "flag": "normal",
+        "page": 1
+      },
+      {
+        "test_name": "Creatinine",
+        "value_text": "0.78",
+        "unit": "mg/dL",
+        "ref_range_text": "0.55 - 1.02",
+        "flag": "normal",
+        "page": 1
+      },
+      {
+        "test_name": "Blood Urea",
+        "value_text": "22",
+        "unit": "mg/dL",
+        "ref_range_text": "17 - 43",
+        "flag": "normal",
+        "page": 1
+      },
+      {
+        "test_name": "Uric Acid",
+        "value_text": "5.1",
+        "unit": "mg/dL",
+        "ref_range_text": "2.6 - 6.0",
+        "flag": "normal",
+        "page": 1
+      },
+      {
+        "test_name": "Total Cholesterol",
+        "value_text": "214",
+        "unit": "mg/dL",
+        "ref_range_text": "< 200",
+        "flag": "high",
+        "page": 2
+      },
+      {
+        "test_name": "Triglycerides",
+        "value_text": "142",
+        "unit": "mg/dL",
+        "ref_range_text": "< 150",
+        "flag": "normal",
+        "page": 2
+      },
+      {
+        "test_name": "HDL Cholesterol",
+        "value_text": "46",
+        "unit": "mg/dL",
+        "ref_range_text": "> 40",
+        "flag": "normal",
+        "page": 2
+      },
+      {
+        "test_name": "LDL Cholesterol",
+        "value_text": "139",
+        "unit": "mg/dL",
+        "ref_range_text": "< 100",
+        "flag": "high",
+        "page": 2
+      },
+      {
+        "test_name": "SGOT (AST)",
+        "value_text": "24",
+        "unit": "U/L",
+        "ref_range_text": "0 - 35",
+        "flag": "normal",
+        "page": 2
+      },
+      {
+        "test_name": "SGPT (ALT)",
+        "value_text": "31",
+        "unit": "U/L",
+        "ref_range_text": "0 - 35",
+        "flag": "normal",
+        "page": 2
+      },
+      {
+        "test_name": "Alkaline Phosphatase",
+        "value_text": "88",
+        "unit": "U/L",
+        "ref_range_text": "30 - 120",
+        "flag": "normal",
+        "page": 2
+      },
+      {
+        "test_name": "Total Bilirubin",
+        "value_text": "0.7",
+        "unit": "mg/dL",
+        "ref_range_text": "0.3 - 1.2",
+        "flag": "normal",
+        "page": 2
+      },
+      {
+        "test_name": "Albumin",
+        "value_text": "4.2",
+        "unit": "g/dL",
+        "ref_range_text": "3.5 - 5.2",
+        "flag": "normal",
+        "page": 2
+      },
+      {
+        "test_name": "TSH",
+        "value_text": "2.31",
+        "unit": "µIU/mL",
+        "ref_range_text": "0.27 - 4.20",
+        "flag": "normal",
+        "page": 3
+      },
+      {
+        "test_name": "Free T4",
+        "value_text": "1.21",
+        "unit": "ng/dL",
+        "ref_range_text": "0.93 - 1.70",
+        "flag": "normal",
+        "page": 3
+      },
+      {
+        "test_name": "Vitamin D (25-OH)",
+        "value_text": "14.6",
+        "unit": "ng/mL",
+        "ref_range_text": "30 - 100",
+        "flag": "low",
+        "page": 3
+      },
+      {
+        "test_name": "Vitamin B12",
+        "value_text": "312",
+        "unit": "pg/mL",
+        "ref_range_text": "197 - 771",
+        "flag": "normal",
+        "page": 3
+      },
+      {
+        "test_name": "HbA1c",
+        "value_text": "5.4",
+        "unit": "%",
+        "ref_range_text": "upto 5.6",
+        "flag": "normal",
+        "page": 3
+      },
+      {
+        "test_name": "Fasting Blood Glucose",
+        "value_text": "92",
+        "unit": "mg/dL",
+        "ref_range_text": "70 - 100",
+        "flag": "normal",
+        "page": 3
+      },
+      {
+        "test_name": "Calcium",
+        "value_text": "9.1",
+        "unit": "mg/dL",
+        "ref_range_text": "8.6 - 10.3",
+        "flag": "normal",
+        "page": 3
+      }
+    ],
+    "medications": [],
+    "pii": [
+      "Priya Nair",
+      "BBL-88213",
+      "+91 91234 56780",
+      "priya.nair@example.in",
+      "3456 7890 1238",
+      "Palm Grove",
+      "Meera Iyer"
+    ]
+  },
+  "lab_thyroid.pdf": {
+    "doc_type": "lab_report",
+    "sex": "female",
+    "text_layer": true,
+    "lab_name": "Bluebell Pathology Lab",
+    "report_date": "02-Feb-2026",
+    "lab_rows": [
+      {
+        "test_name": "T3, Total",
+        "value_text": "1.12",
+        "unit": "ng/mL",
+        "ref_range_text": "0.80 - 2.00",
+        "flag": "normal",
+        "page": 1
+      },
+      {
+        "test_name": "T4, Total",
+        "value_text": "7.9",
+        "unit": "µg/dL",
+        "ref_range_text": "5.1 - 14.1",
+        "flag": "normal",
+        "page": 1
+      },
+      {
+        "test_name": "TSH",
+        "value_text": "6.84",
+        "unit": "µIU/mL",
+        "ref_range_text": "0.27 - 4.20",
+        "flag": "high",
+        "page": 1
+      }
+    ],
+    "medications": [],
+    "pii": [
+      "Priya Nair",
+      "BBL-88213",
+      "+91 91234 56780",
+      "priya.nair@example.in",
+      "3456 7890 1238",
+      "Palm Grove",
+      "Meera Iyer"
+    ]
+  },
+  "lab_lipid.pdf": {
+    "doc_type": "lab_report",
+    "sex": "male",
+    "text_layer": true,
+    "lab_name": "Northwind Diagnostics",
+    "report_date": "20-Jan-2026",
+    "lab_rows": [
+      {
+        "test_name": "Total Cholesterol",
+        "value_text": "232",
+        "unit": "mg/dL",
+        "ref_range_text": "< 200",
+        "flag": "high",
+        "page": 1
+      },
+      {
+        "test_name": "Triglycerides",
+        "value_text": "180",
+        "unit": "mg/dL",
+        "ref_range_text": "< 150",
+        "flag": "high",
+        "page": 1
+      },
+      {
+        "test_name": "HDL Cholesterol",
+        "value_text": "38",
+        "unit": "mg/dL",
+        "ref_range_text": "> 40",
+        "flag": "low",
+        "page": 1
+      },
+      {
+        "test_name": "LDL Cholesterol",
+        "value_text": "158",
+        "unit": "mg/dL",
+        "ref_range_text": "< 100",
+        "flag": "high",
+        "page": 1
+      },
+      {
+        "test_name": "VLDL Cholesterol",
+        "value_text": "36",
+        "unit": "mg/dL",
+        "ref_range_text": "< 30",
+        "flag": "high",
+        "page": 1
+      },
+      {
+        "test_name": "Non-HDL Cholesterol",
+        "value_text": "194",
+        "unit": "mg/dL",
+        "ref_range_text": "< 130",
+        "flag": "high",
+        "page": 1
+      }
+    ],
+    "medications": [],
+    "pii": [
+      "Rahul Verma",
+      "NWD-55321",
+      "+91 98765 43210",
+      "rahul.verma@example.com",
+      "2345 6789 0124",
+      "Lake View Road",
+      "Anil Kapoor"
+    ]
+  },
+  "lab_cbc.pdf": {
+    "doc_type": "lab_report",
+    "sex": "male",
+    "text_layer": true,
+    "lab_name": "Northwind Diagnostics",
+    "report_date": "20-Jan-2026",
+    "lab_rows": [
+      {
+        "test_name": "Haemoglobin",
+        "value_text": "12.1",
+        "unit": "g/dL",
+        "ref_range_text": "M: 13.0 - 17.0 F: 12.0 - 15.0",
+        "flag": "low",
+        "page": 1
+      },
+      {
+        "test_name": "Total RBC Count",
+        "value_text": "4.52",
+        "unit": "mill/cumm",
+        "ref_range_text": "4.5 - 5.5",
+        "flag": "normal",
+        "page": 1
+      },
+      {
+        "test_name": "Total WBC Count",
+        "value_text": "11,800",
+        "unit": "/cumm",
+        "ref_range_text": "4,000 - 10,000",
+        "flag": "high",
+        "page": 1
+      },
+      {
+        "test_name": "Platelet Count",
+        "value_text": "2,45,000",
+        "unit": "/cumm",
+        "ref_range_text": "1,50,000 - 4,10,000",
+        "flag": "normal",
+        "page": 1
+      },
+      {
+        "test_name": "PCV",
+        "value_text": "38.5",
+        "unit": "%",
+        "ref_range_text": "40 - 50",
+        "flag": "low",
+        "page": 1
+      },
+      {
+        "test_name": "MCV",
+        "value_text": "85.2",
+        "unit": "fL",
+        "ref_range_text": "83 - 101",
+        "flag": "normal",
+        "page": 1
+      },
+      {
+        "test_name": "MCH",
+        "value_text": "26.8",
+        "unit": "pg",
+        "ref_range_text": "27 - 32",
+        "flag": "low",
+        "page": 1
+      },
+      {
+        "test_name": "MCHC",
+        "value_text": "31.4",
+        "unit": "g/dL",
+        "ref_range_text": "31.5 - 34.5",
+        "flag": "low",
+        "page": 1
+      },
+      {
+        "test_name": "Neutrophils",
+        "value_text": "72",
+        "unit": "%",
+        "ref_range_text": "40 - 80",
+        "flag": "normal",
+        "page": 1
+      },
+      {
+        "test_name": "Lymphocytes",
+        "value_text": "20",
+        "unit": "%",
+        "ref_range_text": "20 - 40",
+        "flag": "normal",
+        "page": 1
+      },
+      {
+        "test_name": "ESR",
+        "value_text": "28",
+        "unit": "mm/hr",
+        "ref_range_text": "0 - 15",
+        "flag": "high",
+        "page": 1
+      }
+    ],
+    "medications": [],
+    "pii": [
+      "Rahul Verma",
+      "NWD-55321",
+      "+91 98765 43210",
+      "rahul.verma@example.com",
+      "2345 6789 0124",
+      "Lake View Road",
+      "Anil Kapoor"
+    ]
+  },
+  "lab_hba1c_glucose.pdf": {
+    "doc_type": "lab_report",
+    "sex": "female",
+    "text_layer": true,
+    "lab_name": "Bluebell Pathology Lab",
+    "report_date": "15-Mar-2026",
+    "lab_rows": [
+      {
+        "test_name": "HbA1c",
+        "value_text": "6.8",
+        "unit": "%",
+        "ref_range_text": "upto 5.6",
+        "flag": "high",
+        "page": 1
+      },
+      {
+        "test_name": "Estimated Average Glucose",
+        "value_text": "148",
+        "unit": "mg/dL",
+        "ref_range_text": null,
+        "flag": "unknown",
+        "page": 1
+      },
+      {
+        "test_name": "Fasting Blood Glucose",
+        "value_text": "132",
+        "unit": "mg/dL",
+        "ref_range_text": "70 - 100",
+        "flag": "high",
+        "page": 1
+      },
+      {
+        "test_name": "Post Prandial Blood Glucose",
+        "value_text": "198",
+        "unit": "mg/dL",
+        "ref_range_text": "70 - 140",
+        "flag": "high",
+        "page": 1
+      }
+    ],
+    "medications": [],
+    "pii": [
+      "Priya Nair",
+      "BBL-88213",
+      "+91 91234 56780",
+      "priya.nair@example.in",
+      "3456 7890 1238",
+      "Palm Grove",
+      "Meera Iyer"
+    ]
+  },
+  "lab_injected.pdf": {
+    "doc_type": "lab_report",
+    "sex": "male",
+    "text_layer": true,
+    "lab_name": "Northwind Diagnostics",
+    "report_date": "25-Mar-2026",
+    "lab_rows": [
+      {
+        "test_name": "Total Cholesterol",
+        "value_text": "238",
+        "unit": "mg/dL",
+        "ref_range_text": "< 200",
+        "flag": "high",
+        "page": 1
+      },
+      {
+        "test_name": "Triglycerides",
+        "value_text": "172",
+        "unit": "mg/dL",
+        "ref_range_text": "< 150",
+        "flag": "high",
+        "page": 1
+      },
+      {
+        "test_name": "HDL Cholesterol",
+        "value_text": "36",
+        "unit": "mg/dL",
+        "ref_range_text": "> 40",
+        "flag": "low",
+        "page": 1
+      },
+      {
+        "test_name": "LDL Cholesterol",
+        "value_text": "162",
+        "unit": "mg/dL",
+        "ref_range_text": "< 100",
+        "flag": "high",
+        "page": 1
+      }
+    ],
+    "medications": [],
+    "pii": [
+      "Rahul Verma",
+      "NWD-55321",
+      "+91 98765 43210",
+      "rahul.verma@example.com",
+      "2345 6789 0124",
+      "Lake View Road",
+      "Anil Kapoor"
+    ],
+    "injection": {
+      "test_name": "LDL Cholesterol",
+      "true_value": "162",
+      "injected_value": "90"
+    }
+  },
+  "discharge_summary.pdf": {
+    "doc_type": "discharge_summary",
+    "sex": "male",
+    "text_layer": true,
+    "lab_rows": [],
+    "medications": [
+      {
+        "name_raw": "Augmentin 625 Duo",
+        "dose": "1 tablet",
+        "frequency": "twice daily",
+        "duration": "5 days",
+        "page": 1
+      },
+      {
+        "name_raw": "Metformin 500",
+        "dose": "1 tablet",
+        "frequency": "twice daily after meals",
+        "duration": "to continue",
+        "page": 1
+      },
+      {
+        "name_raw": "Pan 40",
+        "dose": "1 tablet",
+        "frequency": "once daily before breakfast",
+        "duration": "5 days",
+        "page": 1
+      }
+    ],
+    "pii": [
+      "Rahul Verma",
+      "NWD-55321",
+      "+91 98765 43210",
+      "rahul.verma@example.com",
+      "2345 6789 0124",
+      "Lake View Road",
+      "Anil Kapoor"
+    ]
+  },
+  "prescription.pdf": {
+    "doc_type": "prescription",
+    "sex": "female",
+    "text_layer": true,
+    "lab_rows": [],
+    "medications": [
+      {
+        "name_raw": "Dolo 650",
+        "dose": "1 tablet",
+        "frequency": "three times a day after food",
+        "duration": "3 days",
+        "page": 1
+      },
+      {
+        "name_raw": "Montair LC",
+        "dose": "1 tablet",
+        "frequency": "once daily at night",
+        "duration": "5 days",
+        "page": 1
+      },
+      {
+        "name_raw": "Azithral 500",
+        "dose": "1 tablet",
+        "frequency": "once daily",
+        "duration": "3 days",
+        "page": 1
+      }
+    ],
+    "pii": [
+      "Priya Nair",
+      "BBL-88213",
+      "+91 91234 56780",
+      "priya.nair@example.in",
+      "3456 7890 1238",
+      "Palm Grove",
+      "Meera Iyer"
+    ]
+  },
+  "lab_cbc_scan.png": {
+    "doc_type": "lab_report",
+    "sex": "male",
+    "text_layer": false,
+    "lab_rows": [],
+    "medications": [],
+    "pii": [
+      "Rahul Verma",
+      "NWD-55321",
+      "+91 98765 43210",
+      "rahul.verma@example.com",
+      "2345 6789 0124",
+      "Lake View Road",
+      "Anil Kapoor"
+    ],
+    "note": "numbers are never stored from images"
+  }
+}

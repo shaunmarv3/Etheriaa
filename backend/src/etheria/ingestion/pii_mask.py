@@ -57,9 +57,12 @@ class MaskResult:
 _NAME_LABELS = r"patient\s*name|name|referred\s*by|ref\.?\s*by|consultant"
 _ID_LABELS = r"uhid|mrn|patient\s*id|lab\s*no\.?|lab\s*id|sample\s*id|reg(?:istration)?\.?\s*no\.?"
 _SEP = r"[ \t]*[:\-.][ \t]*|[ \t]+"
-_LABELLED_NAME = re.compile(rf"(?im)^([ \t]*(?:{_NAME_LABELS})(?:{_SEP}))(?!\s*$)(.+?)[ \t]*$")
-_LABELLED_ID = re.compile(rf"(?im)^([ \t]*(?:{_ID_LABELS})(?:{_SEP}))(?!\s*$)(.+?)[ \t]*$")
-_ADDRESS = re.compile(r"(?im)^([ \t]*address[ \t]*[:\-][ \t]*)(.+?)[ \t]*$")
+# A value runs until the end of the line or a column gap (a tab or 2+ spaces):
+# reports print two fields per line ("Patient Name: X      Age/Sex: 34 Y / Male").
+_VALUE = r"([^\s](?:[^\t\n\r ]| (?! ))*)"
+_LABELLED_NAME = re.compile(rf"(?im)^([ \t]*(?:{_NAME_LABELS})(?:{_SEP})){_VALUE}")
+_LABELLED_ID = re.compile(rf"(?im)^([ \t]*(?:{_ID_LABELS})(?:{_SEP})){_VALUE}")
+_ADDRESS = re.compile(rf"(?im)^([ \t]*address[ \t]*[:\-][ \t]*){_VALUE}")
 _EMAIL = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
 _AADHAAR = re.compile(r"(?<!\d)(\d{4})[ \-]?(\d{4})[ \-]?(\d{4})(?!\d)")
 _PHONE = re.compile(r"(?<![\d+])(?:\+91[ \-]?|0)?[6-9]\d{4}[ \-]?\d{5}(?!\d)")

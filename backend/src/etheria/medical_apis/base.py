@@ -58,11 +58,12 @@ class ApiClient:
 
     async def _throttle(self) -> None:
         # Space request *starts*; concurrent callers queue on the lock.
+        # asyncio may wake a timer up to one clock tick early (about 15 ms on
+        # Windows), so sleep until the start time has really passed.
         async with self._lock:
-            now = time.monotonic()
-            if now < self._next_start:
+            while (now := time.monotonic()) < self._next_start:  # noqa: ASYNC110 (deadline wait, not polling)
                 await asyncio.sleep(self._next_start - now)
-            self._next_start = max(now, self._next_start) + self._interval
+            self._next_start = now + self._interval
 
     async def _get(self, url: str, params: dict | None, headers: dict | None) -> httpx.Response:
         await self._throttle()

@@ -14,7 +14,8 @@ Etheria v2: an India-aware AI health assistant (triage + health information, not
 - M0 done (`docs/spikes/m0-results.md`). M1 done: settings, logging, error shape, schema with RLS and partitions, auth, health/readiness, test harness, import contracts.
 - M2 done (plan `docs/superpowers/plans/2026-09-28-m2-knowledge.md`): medical API clients (`medical_apis/`), knowledge services (`knowledge/`: resolver, interactions, condition explorer), seeder (`seed/`), curated YAML (`seed/data/`, `safety/red_flags.yaml`), real counts in `docs/NUMBERS.md`. The curated YAML still needs the owner's review.
 - M3 done (plan `docs/superpowers/plans/2026-09-28-m3-ingestion.md`): `POST/GET/DELETE /upload/` + download (`api/routers/upload.py`), encrypted `FileStore`, `IngestDocumentWorkflow` + `IngestionActivities` (`ingestion/`), `llm/registry.py` + `prompts/*.md`, BGE embeddings (`retrieval/embedding.py`), synthetic fixtures (`tests/fixtures/reports/`, regenerate with `generate.py`), extraction eval 54/54 (`docs/evals/extraction.md`). Tesseract is not installed yet (owner action; scanned uploads fail with `ocr_unavailable` until it is).
-- Next: M4 (reasoning graph).
+- M4 done (plan `docs/superpowers/plans/2026-09-28-m4-reasoning-graph.md`): the chat graph in `graph/` (state + `merge_turn` reducer, shell nodes in `graph/nodes/`, `create_agent` retrieval agent + 8 user-scoped tools in `graph/agent.py` / `graph/tools.py`, builder, `ChatService` with fork-based regenerate and rebuild-from-`messages`, post-hoc audit), `safety/` (rule matcher, input guard, `StreamGuard`, drug cautions), `/chat/stream` (SSE), `/chat/regenerate`, `/history`, hybrid report search + cross-encoder rerank (`retrieval/`), checkpoint tables via migration 0003, graph eval 32/32 (`docs/evals/graph.md`, replies in `graph-replies.md`), generated diagram in `docs/ARCHITECTURE.md`. `safety/drug_cautions.yaml` joins the YAML awaiting owner review.
+- Next: M5 (voice; provider decided at M5 start).
 - Remote: `origin` = https://github.com/shaunmarv3/etheria-v2, branch `main`.
 
 ## Hard rules
@@ -26,7 +27,7 @@ Etheria v2: an India-aware AI health assistant (triage + health information, not
 - **DDInter data is never committed.** It has no licence. The seeder downloads it and verifies checksums (`data/` is gitignored).
 - Copy API keys from v1's `.env` only with the owner's explicit permission.
 
-## Planned commands (from the spec; update this section as milestones land)
+## Commands (update this section as milestones land)
 
 ```bash
 docker compose -f infra/docker-compose.yml up -d   # Postgres, Neo4j, Redis, Temporal (UI :8233)
@@ -39,6 +40,7 @@ uv run etheria worker         # Temporal worker: ingestion (loads BGE-large, ~25
 uv run etheria seed           # knowledge layer: 8 phases + canaries -> docs/NUMBERS.md (idempotent)
 uv run etheria seed --verify-only   # counts + canaries only; --skip-codes skips external lookups
 uv run etheria eval --suite extraction   # extraction eval, real DeepSeek (opt-in, costs cents) -> docs/evals/
+uv run etheria eval --suite graph        # graph eval, 32 scenarios, real DeepSeek (~5 min, cents); --only <id> for one
 uv run etheria graph-diagram  # regenerate the Mermaid diagram in docs/ARCHITECTURE.md
 uv run pytest tests/unit/test_x.py::test_name     # single test
 uv run pytest tests/live --live                   # real external APIs + curated source URLs (opt-in)
@@ -76,6 +78,10 @@ LangChain 1.4.0 / LangGraph 1.2.11: do not write 0.x-era code.
 - DeepSeek: `ChatDeepSeek(model="deepseek-flash", extra_body={"thinking": {"type": "disabled"}})`; thinking is on by default. `with_structured_output(..., method="function_calling")` scored 10/10 in M0.
 - Custom stream events: `langgraph.config.get_stream_writer()`. Test fakes: `GenericFakeChatModel`.
 - NLM's RxNav drug-interaction API was retired on 2024-01-02. Use RxNav for name normalisation only; interactions come from DDInter.
+- Tools (verified in M4): `@tool(response_format="content_and_artifact")` returns `(content, artifact)`; a `runtime: ToolRuntime` parameter is injected and hidden from the model's schema (`runtime.context` = the run's context, `runtime.state` = the agent's state; give `create_agent` a `state_schema=` subclass of `AgentState` for extra fields). A dataclass context makes pydantic emit harmless serializer warnings (filtered in `graph/agent.py` and pytest).
+- Checkpoints holding pydantic state need `JsonPlusSerializer(allowed_msgpack_modules=[(module, name), ...])` (see `graph/builder.serializer`), otherwise LangGraph warns and will later refuse to load them.
+- `GenericFakeChatModel(messages=iter([...]))` is exhausted after one call; multi-turn tests use `tests/graph_fakes.RepeatStream`. `ScriptedChat.bind_tools` returns itself so it can drive `create_agent`.
+- httpx's `ASGITransport` buffers the whole response, so SSE timing cannot be measured through it; the graph eval times events inside `ChatService.events()`.
 
 ## Environment notes
 

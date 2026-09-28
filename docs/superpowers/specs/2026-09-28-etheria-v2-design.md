@@ -61,6 +61,14 @@ A portfolio and learning project, demoed locally or over screen-share. No real u
 | D14 | Retrieval | Hybrid dense (pgvector HNSW) + keyword (Postgres full-text), fused with reciprocal rank fusion, then cross-encoder rerank | Exact tokens such as "TSH" or "HbA1c" are weak spots for pure embeddings | Dense only |
 | D15 | Tooling | Python 3.12, `uv` + `pyproject.toml` + lockfile, pytest, ruff, Alembic, import-linter | Modern and reproducible | pip + `requirements.txt` |
 | D16 | Tracing | LangSmith, opt-in and off by default; synthetic data only | It is a third-party data processor | Always on |
+| D17 | Streaming (M4) | `StreamGuard` runs inside `generate`; guarded text reaches SSE through the custom stream mode (`get_stream_writer()`), not `messages` mode | The streamed text equals the stored text, and no other node's LLM tokens can leak into the stream | Filtering `messages` mode outside the graph |
+| D18 | Emergency block (M4) | Sent by the first node that knows the turn is RED: `input_guard` (rule pre-scan, before any LLM call), else `triage`, else `generate` as a last net; `triage` adds the Tele-MANAS line if the model sees self-harm after a rule-sent block | RED arrives first even when every model fails | Only `generate` sends it |
+| D19 | State (M4) | `turn` carries a merge reducer: a dict updates fields (list fields shared by parallel nodes are appended), a `TurnData` replaces, `None` empties | Parallel branches write the same channel in one superstep | Separate state keys per node |
+| D20 | Checkpoint schema (M4) | Alembic migration 0003 creates the checkpoint tables from the library's own `MIGRATIONS` as the owner role and grants them to `etheria_app`; the app never calls `setup()`; a unit test fails if the library adds a migration | The app role cannot run DDL | `setup()` at startup |
+| D21 | Reranker (M4) | `cross-encoder/ms-marco-MiniLM-L-6-v2` (about 90 MB, CPU), warmed at api startup together with BGE; only free-text passages are reranked and budgeted, structured evidence is never dropped | Fast on CPU; a cold load stalled the first request 19 s | A large reranker |
+| D22 | Condition ranking (M4) | Matched weight x coverage, then matched weight | Coverage alone ranked dengue third for fever + body ache + pain behind the eyes; weight alone ranked meningitis second for headache | Coverage alone (the M2 plan) |
+| D23 | Tool inputs (M4) | The test catalogue and a stated pregnancy reach the tools through the agent's own state (`create_agent(state_schema=...)`, `ToolRuntime.state`); identity only through `ToolRuntime.context` | The model should not have to pass them, and cannot fake them | Model-visible arguments |
+| D24 | Graph eval grading (M4) | Code first (triage floor, tools, the StreamGuard rules over the final reply, disclaimer, RED block first), then `deepseek-v4-pro` for the free-text expectations; every reply is written to `docs/evals/graph-replies.md` for a human check | Deterministic where possible; a model grading a model is checked by a person | Model-only grading |
 
 ## 3. Architecture
 
@@ -235,7 +243,7 @@ Built with `langchain.agents.create_agent` (DeepSeek). It returns a compiled gra
 **Drug cautions from the user's own record (added 2026-09-28, built in M4).** Drug-drug checks do not cover "this medicine with *my* report". A curated table, `safety/drug_cautions.yaml`, holds drug-class x lab or condition cautions, each with a rationale and a public source: for example NSAID + high creatinine / low eGFR / low platelets / pregnancy / peptic ulcer; metformin + low eGFR; ACE inhibitor or ARB + high potassium or pregnancy; anticoagulant + low platelets. `check_interactions` evaluates it in code against the user's abnormal lab rows, extracted conditions and a stated pregnancy, and returns `cautions: [{drug, trigger, value, rationale, source}]` beside the interaction findings. A caution tells the user which value on which report matters and that a doctor should confirm; it never says "do not take", never says "safe", never gives a dose. No caution found is reported as "no recorded caution for your values", not as clearance.
 
 **Known M2 gaps to fix in M4 (found by probing the seeded graph, 2026-09-28):**
-- *Condition ranking.* `explore_conditions` sums matched weights, so headache alone ranks meningitis and Japanese encephalitis 2nd and 3rd. Rank by coverage instead (matched weight / the condition's total weight, then summed weight as the tie-break) so a condition whose cardinal symptoms are absent drops; pass the stated duration to the agent so acute infections are not offered for a 3-year symptom.
+- *Condition ranking (built in M4, D22).* `explore_conditions` summed matched weights, so headache alone ranked meningitis and Japanese encephalitis 2nd and 3rd. It now ranks by matched weight x coverage (coverage = matched weight / the condition's total weight): coverage alone, the first plan, ranked dengue third for fever + body ache + pain behind the eyes. The stated duration reaches the agent through `Understanding`, so acute infections are not offered for a 3-year symptom.
 - *Short brand names.* "Brufen" scores 0.39 on `similarity` against "Brufen 400 Tablet" and is unresolved; `word_similarity` scores 1.0. Use word similarity for the trigram step. When close candidates differ (Brufen vs Brufen MR = + tizanidine), keep the ambiguity but check the ingredients every candidate shares (ibuprofen) and name the candidates.
 - *Lay terms.* "tinnitus" is not a lay term of the ringing-in-the-ears symptom; the full-text fallback needs every word, so the `understand` node must pass clean symptom phrases, not whole sentences. Add the missing terms found by the eval.
 
@@ -307,7 +315,7 @@ graph.astream(input,
               durability="exit")
 ```
 
-Tokens come from `messages` mode, filtered to `metadata["langgraph_node"] == "generate"` and passed through `StreamGuard`. Status messages come from `custom` mode, emitted with `get_stream_writer()`.
+Every event comes from `custom` mode, emitted with `get_stream_writer()` (D17): `generate` streams the model through `StreamGuard` and emits each guarded segment as a `token`, so the stored reply is exactly what was streamed; the emergency block, canned replies and the disclaimer are `token` events emitted by code; `finalize` emits `metadata`. The service adds `done`, or `error` (storing any partial reply with `metadata.incomplete = true`).
 
 Events (`data: <json>` lines):
 
@@ -320,7 +328,7 @@ Events (`data: <json>` lines):
 | `done` | - | Unchanged |
 | `error` | `detail` | Unchanged |
 
-Payload shapes match `frontend/src/lib/types.ts` exactly: `Symptom`, `DifferentialDiagnosis`, `Citation` (including the camel-case `relevanceScore` key, because the stream hands citations to the UI without key conversion) and `AgentTrace` (snake_case keys, as typed). Contract tests pin this (section 15).
+Payload shapes match `frontend/src/lib/types.ts` exactly: `Symptom`, `DifferentialDiagnosis`, `Citation` (including the camel-case `relevanceScore` key, because the stream hands citations to the UI without key conversion) and `AgentTrace` (snake_case keys, as typed). Contract tests pin this (section 15). `Citation.source` gains two additive values, `medlineplus` and `curated` (drug cautions), which M6 adds to the union in the copied `types.ts`; no frontend code branches on it. Only evidence the reply cites by `[n]` becomes a citation.
 
 `agent_trace` is built from the real run: one entry per executed node (name, role, output summary, tools called, detail). `sources` counts evidence per source, `routing_flags` records which tools the agent chose, and `cache_hit` records whether any cached API response was used.
 
@@ -493,7 +501,7 @@ Every entry cites a public source; `tests/live/test_curated_sources_live.py` che
 | `medications` | `id`, `user_id`, `document_id`, `name_raw`, `ingredients text[]`, `dose`, `frequency`, `duration`, `source`, `report_date` | |
 | `medicine_brands`, `drug_synonyms` | Section 6.2 | Public reference data; no RLS |
 | `audit_log` | `id`, `created_at`, `user_ref`, `action`, `resource_type`, `resource_id`, `ip`, `user_agent`, `details` (JSONB) | **Partitioned by month**; partitions older than 12 months are dropped |
-| LangGraph checkpoint tables | Managed by `AsyncPostgresSaver.setup()` | |
+| LangGraph checkpoint tables | Created by migration 0003 from `langgraph-checkpoint-postgres`'s own schema (D20) | No RLS (keyed by `thread_id` text): the chat service checks conversation ownership through RLS-protected `conversations` before touching a thread |
 
 **Row-level security** on `conversations`, `messages`, `documents`, `document_chunks`, `lab_results` and `medications`, with the policy `user_id = current_setting('app.user_id')::uuid`. The app connects as a non-owner role (`etheria_app`), and every request transaction runs `SET LOCAL app.user_id`. Application code also filters by user; RLS is the second line of defence, and it is tested on its own.
 
@@ -581,7 +589,7 @@ By default LangGraph writes a checkpoint after every superstep, containing the f
 2. `finalize` empties the per-turn state, so a checkpoint is about the message window plus the summary (20-25 KB).
 3. Idle threads are deleted from the checkpointer and rebuilt from `messages` when resumed. M0 measured a persisted checkpoint at about 553 bytes for a two-turn stand-in graph.
 
-The estimated result is a 25-40x reduction in checkpoint storage. It is measured in M7 and recorded in `docs/NUMBERS.md`.
+The estimated result is a 25-40x reduction in checkpoint storage. Measured in M4 on a real two-turn conversation: one checkpoint per turn (about 1 KB) plus 2-3 KB of channel blobs, no pending writes (`docs/NUMBERS.md`); M7 measures it at scale.
 
 ### 8.3 Caching matrix
 
@@ -609,13 +617,13 @@ Redis also holds rate-limit counters, and nothing else: v1's session cache is re
 | Endpoint | Status | Notes |
 |---|---|---|
 | `POST /auth/register`, `/auth/login`, `/auth/refresh`, `/auth/logout`; `GET /auth/me` | New | Section 9 |
-| `POST /chat/stream` | Kept | Section 4.7 |
+| `POST /chat/stream` | Kept | Section 4.7. 20 per minute per user; message 1-4,000 characters; `voice_b64` answers 400 `voice_unavailable` until M5; without `DEEPSEEK_API_KEY` chat answers 503 `chat_unavailable` |
 | `POST /chat/regenerate` | Kept | `{session_id}` -> the v1 `ChatResponse` shape (not streamed); section 4.8 |
 | `POST /chat/tts` | Kept | `{text, voice, speed}` -> `{audio_b64}` |
 | `GET /history/` | Kept | `?page&page_size` -> `{total, page, page_size, sessions[]}`, plus an additive `name` |
 | `GET /history/{id}` | Kept | Messages gain additive `message_id`, `triage_level`, `citations`, `differential` |
 | `PATCH /history/{id}` | Kept | `{name}` |
-| `DELETE /history/{id}` | Kept | Soft delete plus checkpoint deletion |
+| `DELETE /history/{id}` | Kept | Soft delete plus checkpoint deletion; 204 |
 | `POST /upload/` | Kept | Section 5.1 |
 | `GET /upload/` | Kept | Additive `doc_type`, `summary`, `report_date` |
 | `DELETE /upload/{id}` | Kept | Removes rows, chunks and the encrypted file |
@@ -687,7 +695,7 @@ Copied from `D:\Etheria\etheria` into `frontend/`; the original is not modified.
 | Integration | Repositories, RLS, migrations, hybrid search, Neo4j queries, the Temporal workflow | Real Postgres, Neo4j and Redis from `infra/`; the Temporal test environment |
 | Contract | The SSE event sequence and payload keys against `frontend/src/lib/types.ts`; REST response shapes | Snapshot tests pinned to the TypeScript types |
 | Extraction eval | Synthetic fixtures -> expected rows | Precision and recall report; grounding rejection counts |
-| Graph eval | At least 30 scenarios across synthetic user profiles: routing, tool choice, citation of lab values, refusals, RED handling, resistance to injected reports, "never safe to combine", drug cautions from the user's reports, questions outside the curated graph. The first 26 are drafted in `backend/tests/evals/graph_scenarios.yaml` (6 from the owner's own questions, 20 typical ones; 14 safety, 12 quality) | Real models, opt-in (`uv run etheria eval`); report written to `docs/` |
+| Graph eval | At least 30 scenarios across synthetic user profiles: routing, tool choice, citation of lab values, refusals, RED handling, resistance to injected reports, "never safe to combine", drug cautions from the user's reports, questions outside the curated graph. 32 scenarios in `backend/tests/evals/graph_scenarios.yaml` (6 from the owner's own questions; 16 safety, 16 quality), graded as D24 | Real models, opt-in (`uv run etheria eval --suite graph`); report in `docs/evals/graph.md`, every reply in `docs/evals/graph-replies.md` |
 | Security | Cross-user attempts (API, tool, SQL under RLS), token reuse, rate limits, upload fuzzing, an injection corpus | pytest |
 
 **Synthetic fixtures** (`tests/fixtures/reports/`) are generated by a ReportLab script, so the ground truth is known by construction: five lab reports in Indian diagnostic-chain layouts (full-body checkup, thyroid profile, lipid profile, CBC, HbA1c + glucose), one discharge summary, one digital prescription, a scanned-image copy of a lab report (to prove no numbers are extracted from images), and a report containing an injected instruction. All carry fake PII, so masking is tested too.
@@ -706,7 +714,7 @@ Copied from `D:\Etheria\etheria` into `frontend/`; the original is not modified.
 | **M1 Foundation** | Repo, `uv`, settings, logging, infra compose, Alembic schema (RLS, partitions), auth backend, health endpoints, test harness, import-linter | Auth flow and RLS tests green; compose up within budget |
 | **M2 Knowledge** | Medical API ports, curated data files (owner-reviewed), seeder with verification | Seeder canaries pass; `docs/NUMBERS.md` written |
 | **M3 Ingestion** | Upload API, encrypted storage, the Temporal workflow and activities, synthetic fixture generator, extraction eval | The extraction criterion in 1.2 is met; the workflow survives a worker restart mid-run |
-| **M4 Reasoning graph** | State, nodes, retrieval agent and tools, triage, `StreamGuard`, generation, finalize, SSE, history, regenerate, graph eval; drug cautions from the user's record (4.5), the no-evidence rule (4.6), and the M2 gaps listed in 4.5 (coverage ranking, short brand names, lay terms) | The graph-eval criterion in 1.2 is met; contract tests green |
+| **M4 Reasoning graph** (done 2026-09-29) | State, nodes, retrieval agent and tools, triage, `StreamGuard`, generation, finalize, SSE, history, regenerate, graph eval; drug cautions from the user's record (4.5), the no-evidence rule (4.6), and the M2 gaps listed in 4.5 (coverage ranking, short brand names, lay terms) | The graph-eval criterion in 1.2 is met; contract tests green |
 | **M5 Voice** | Speech-to-text on `/chat/stream`, TTS endpoint | An end-to-end voice turn works |
 | **M6 Frontend** | Copy, auth swap, removed features, download fix | The full end-to-end flow in 1.2 works in the browser |
 | **M7 Hardening** | Security suite, pruning and partition schedules, retention, latency and storage measurements, `ARCHITECTURE.md` (generated diagram), `SECURITY.md`, final numbers | Every success criterion in 1.2 holds |

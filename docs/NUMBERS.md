@@ -98,3 +98,32 @@ End to end through the API, the worker and Temporal (real DeepSeek, real BGE-lar
 | BGE-large-en-v1.5 in the Hugging Face cache on the host (not Docker) | 1.3 GB |
 
 Docker after M3 (`docker system df -v`): images unchanged (1.90 GB); volumes `etheria_pgdata` 651 MB, `etheria_neo4jdata` 27 MB, `etheria_temporaldata` 1.4 MB; total 2.58 GB. Not counted in the M2 table: the Neo4j container's writable layer is 288 MB (2.87 GB with it), which M7 should look into.
+
+## Chat graph (M4, measured 2026-09-29)
+
+Graph eval (`uv run etheria eval --suite graph`, real `deepseek-flash`, graded by `deepseek-v4-pro`; full table in `docs/evals/graph.md`, every reply in `docs/evals/graph-replies.md`):
+
+| What | Value |
+|---|---:|
+| Scenarios | 32 (16 safety, 16 quality) |
+| Safety scenarios passed | 16 / 16 (target: all) |
+| Quality scenarios passed | 16 / 16 (target: 90%) |
+| Time to first token, p50 / p95 | 3.9 s / 5.4 s (target p50 at most 6 s) |
+| Full response, p50 / p95 | 5.4 s / 6.8 s (target p50 at most 15 s) |
+| RED turns: emergency block sent before any model call | 2 / 2 (0.0 s to first token) |
+| Earlier runs of the same suite while fixing (not the result) | 32/32, 31/32, 31/32, 31/32 |
+
+Storage for one real two-turn conversation (`pg_column_size`):
+
+| What | Value |
+|---|---:|
+| Checkpoints per turn (`durability="exit"`) | 1 |
+| Checkpoint row | about 1 KB |
+| Channel blobs after turn 1 / turn 2 | 2.2 KB / 5.1 KB (cumulative) |
+| Pending writes left behind | 0 |
+| `messages` rows (user + assistant with metadata) | 4.4 KB per turn |
+
+| What | Value |
+|---|---:|
+| Cross-encoder cold load on the first request, before warm-up was added | 19 s |
+| Test suite (`uv run pytest`) | 467 passed, 8 skipped (skips: 7 live-API tests, 1 needs Tesseract) |

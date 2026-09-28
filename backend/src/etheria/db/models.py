@@ -58,6 +58,35 @@ class AuditLog(Base):
     details: Mapped[dict[str, Any]] = mapped_column(server_default=text("'{}'::jsonb"))
 
 
+class Conversation(Base):
+    __tablename__ = "conversations"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
+    title: Mapped[str | None]
+    triage_level: Mapped[str | None]
+    started_at: Mapped[datetime] = mapped_column(server_default=func.now())
+    last_message_at: Mapped[datetime] = mapped_column(server_default=func.now())
+    deleted_at: Mapped[datetime | None]
+
+
+class Message(Base):
+    """Partitioned by month on created_at, so the primary key is (id, created_at).
+    The `metadata` column is mapped as `meta` (the name is reserved by SQLAlchemy)."""
+
+    __tablename__ = "messages"
+
+    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
+    created_at: Mapped[datetime] = mapped_column(primary_key=True, server_default=func.now())
+    conversation_id: Mapped[uuid.UUID]
+    user_id: Mapped[uuid.UUID]
+    role: Mapped[str]
+    content: Mapped[str]
+    intent: Mapped[str | None]
+    meta: Mapped[dict[str, Any]] = mapped_column("metadata", server_default=text("'{}'::jsonb"))
+    superseded_at: Mapped[datetime | None]
+
+
 class Document(Base):
     __tablename__ = "documents"
 

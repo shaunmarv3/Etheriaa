@@ -55,7 +55,7 @@
 - {code: ear_pain, name: Ear pain, lay_terms: [earache, kaan dard], source: https://medlineplus.gov/earinfections.html}
 - {code: ear_discharge, name: Ear discharge, lay_terms: [pus from ear, kaan behna], source: https://medlineplus.gov/earinfections.html}
 - {code: hearing_loss, name: Hearing loss, lay_terms: [cannot hear properly, blocked ear], source: https://medlineplus.gov/hearingdisordersanddeafness.html}
-- {code: tinnitus, name: Ringing in the ears, lay_terms: [ringing ears, buzzing in ears], source: https://medlineplus.gov/tinnitus.html}
+- {code: tinnitus, name: Ringing in the ears, lay_terms: [ringing ears, buzzing in ears, tinnitus, ringing in my ears, ears ringing, ringing in both ears, ringing in the ear], source: https://medlineplus.gov/tinnitus.html}
 - {code: sore_throat, name: Sore throat, lay_terms: [throat pain, gala kharab, gala dard, painful swallowing], source: https://medlineplus.gov/sorethroat.html}
 - {code: runny_nose, name: Runny nose, lay_terms: [running nose, nose running, naak behna], source: https://medlineplus.gov/commoncold.html}
 - {code: nasal_congestion, name: Blocked nose, lay_terms: [stuffy nose, nose blocked, nasal congestion], source: https://medlineplus.gov/ency/article/003049.htm}

@@ -11,6 +11,7 @@ from itertools import combinations
 import neo4j
 from pydantic import BaseModel
 
+from etheria.cache.json_cache import JsonCache
 from etheria.knowledge.resolver import MedicineResolver
 from etheria.knowledge.severity import rank
 from etheria.knowledge.text import normalise_name
@@ -38,10 +39,19 @@ class InteractionReport(BaseModel):
     coverage_note: str = NOT_SAFE_NOTE
 
 
+GRAPH_TTL_S = 24 * 3600  # knowledge-graph lookups (spec 8.3)
+
+
 class InteractionService:
-    def __init__(self, resolver: MedicineResolver, driver: neo4j.AsyncDriver) -> None:
+    def __init__(
+        self,
+        resolver: MedicineResolver,
+        driver: neo4j.AsyncDriver,
+        cache: JsonCache | None = None,
+    ) -> None:
         self._resolver = resolver
         self._driver = driver
+        self._cache = cache
 
     async def check(self, names: list[str]) -> InteractionReport:
         resolutions = await asyncio.gather(*(self._resolver.resolve(n) for n in names))
@@ -53,8 +63,10 @@ class InteractionService:
             elif r.status == "unresolved":
                 unresolved.append(r.query)
             unresolved += [f"{r.query} ({i})" for i in r.unresolved_ingredients]
-            if r.ingredients:
-                products.append(set(r.ingredients))
+            # An ambiguous brand still contributes what every candidate contains.
+            ingredients = r.ingredients or r.shared_ingredients
+            if ingredients:
+                products.append(set(ingredients))
 
         seen: dict[str, int] = {}
         for p in products:
@@ -86,20 +98,27 @@ class InteractionService:
             duplicate_ingredients=duplicates,
         )
 
+    async def drug_classes(self, drugs: list[str]) -> dict[str, list[str]]:
+        """Drug node name -> the DrugClass names it is a member of (for cautions)."""
+        records, _, _ = await self._driver.execute_query(
+            "UNWIND $rows AS row OPTIONAL MATCH (d:Drug {key: row.k})-[:MEMBER_OF]->(c:DrugClass) "
+            "RETURN row.name AS name, collect(DISTINCT c.name) AS classes",
+            rows=[{"name": d, "k": normalise_name(d)} for d in drugs],
+        )
+        return {r["name"]: sorted(r["classes"]) for r in records}
+
     async def _edges(
         self, pairs: list[tuple[str, str]]
     ) -> dict[tuple[str, str], InteractionFinding]:
         if not pairs:
             return {}
-        records, _, _ = await self._driver.execute_query(
-            "UNWIND $pairs AS p "
-            "MATCH (a:Drug {key: p.ka})-[r:INTERACTS_WITH]-(b:Drug {key: p.kb}) "
-            "RETURN p.a AS a, p.b AS b, collect({severity: r.severity, source: r.source, "
-            "rationale: r.rationale}) AS edges",
-            pairs=[
-                {"a": a, "b": b, "ka": normalise_name(a), "kb": normalise_name(b)} for a, b in pairs
-            ],
-        )
+        if self._cache is None:
+            records = await self._edge_records(pairs)
+        else:
+            key = JsonCache.key("kg", "edges", pairs)
+            records = await self._cache.get_or_fetch(
+                key, GRAPH_TTL_S, lambda: self._edge_records(pairs)
+            )
         out = {}
         for a, b, edges in records:
             worst = min(edges, key=lambda e: rank(e["severity"]))
@@ -112,3 +131,15 @@ class InteractionService:
                 rationale=rationale,
             )
         return out
+
+    async def _edge_records(self, pairs: list[tuple[str, str]]) -> list[list]:
+        records, _, _ = await self._driver.execute_query(
+            "UNWIND $pairs AS p "
+            "MATCH (a:Drug {key: p.ka})-[r:INTERACTS_WITH]-(b:Drug {key: p.kb}) "
+            "RETURN p.a AS a, p.b AS b, collect({severity: r.severity, source: r.source, "
+            "rationale: r.rationale}) AS edges",
+            pairs=[
+                {"a": a, "b": b, "ka": normalise_name(a), "kb": normalise_name(b)} for a, b in pairs
+            ],
+        )
+        return [[a, b, list(edges)] for a, b, edges in records]

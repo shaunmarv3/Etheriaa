@@ -239,3 +239,10 @@ def test_extra_drugs_satisfy_class_members_but_must_not_duplicate_ddinter() -> N
 def test_atc_code_shape() -> None:
     with pytest.raises(ValidationError):
         ExtraDrug(name="X", atc="M01", source=SRC)
+
+
+def test_tinnitus_has_its_medical_name_as_a_lay_term() -> None:
+    from etheria.seed.curated import load_curated
+
+    (s,) = [s for s in load_curated().symptoms if s.code == "tinnitus"]
+    assert {"tinnitus", "ringing in my ears", "ears ringing"} <= set(s.lay_terms)

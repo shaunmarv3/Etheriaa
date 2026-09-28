@@ -1,11 +1,18 @@
 """Medicine resolution (spec 6.3): a brand or generic name -> DDInter drugs.
 
 name -> itself an ingredient / synonym / drug? -> exact brand -> trigram brand
-(similarity >= 0.45; the best ingredient set must lead the best *different*
-set by 0.1, otherwise ambiguous) -> ingredients -> spelling, salt and synonym
-canonicalisation -> Drug nodes. Anything not matched is reported, never guessed.
-The lead rule compares ingredient sets, not brand names: "Dolo 650" and
-"Dolo 500" are two strengths of one product, not an ambiguity."""
+(word similarity >= 0.45; the best ingredient set must lead the best
+*different* set by 0.1, otherwise ambiguous) -> ingredients -> spelling, salt
+and synonym canonicalisation -> Drug nodes. Anything not matched is reported,
+never guessed. The lead rule compares ingredient sets, not brand names:
+"Dolo 650" and "Dolo 500" are two strengths of one product, not an ambiguity.
+
+Word similarity (not plain similarity) scores the query against the best
+matching extent of the brand name, so a short query such as "Brufen" scores
+1.0 against "Brufen 400 Tablet" instead of 0.39 (spec 4.5, M2 gap). When the
+close candidates differ (Brufen vs Brufen MR, which adds tizanidine), the
+result stays ambiguous, but the ingredients every candidate shares are
+returned so interaction checks still cover them."""
 
 from collections.abc import Sequence
 from typing import Literal
@@ -32,6 +39,7 @@ class Resolution(BaseModel):
     ingredients: list[str] = []  # Drug node names (DDInter or curated)
     unresolved_ingredients: list[str] = []
     candidates: list[str] = []  # the close brands, when ambiguous
+    shared_ingredients: list[str] = []  # Drug names every close candidate contains
 
 
 def pick_candidate(
@@ -91,15 +99,16 @@ class MedicineResolver:
             ).all()
             if exact:
                 return [(n, 1.0, tuple(sorted(i))) for n, i in exact]
-            # `%` uses the GIN trigram index; the threshold is local to this transaction.
+            # `<%` uses the GIN trigram index; the threshold is local to this transaction.
             await s.execute(
-                text("SELECT set_config('pg_trgm.similarity_threshold', :t, true)"),
+                text("SELECT set_config('pg_trgm.word_similarity_threshold', :t, true)"),
                 {"t": str(MIN_SIMILARITY)},
             )
             rows = await s.execute(
                 text(
-                    "SELECT name, similarity(name, :q) AS sim, ingredients "
-                    "FROM medicine_brands WHERE name % :q ORDER BY sim DESC, name LIMIT 20"
+                    "SELECT name, word_similarity(:q, name) AS sim, ingredients "
+                    "FROM medicine_brands WHERE :q <% name "
+                    "ORDER BY sim DESC, similarity(name, :q) DESC, name LIMIT 20"
                 ),
                 {"q": q},
             )
@@ -119,8 +128,15 @@ class MedicineResolver:
         if picked == NO_MATCH:
             return Resolution(query=name, status="unresolved")
         if picked == AMBIGUOUS:
-            close = [n for n, sim, _ in cands if sim >= cands[0][1] - MIN_LEAD]
-            return Resolution(query=name, status="ambiguous", candidates=close[:5])
+            close = [(n, i) for n, sim, i in cands if sim >= cands[0][1] - MIN_LEAD]
+            common = set.intersection(*(set(i) for _, i in close))
+            mapped = await self._canonical(sorted(common)) if common else {}
+            return Resolution(
+                query=name,
+                status="ambiguous",
+                candidates=[n for n, _ in close][:5],
+                shared_ingredients=sorted({d for d in mapped.values() if d}),
+            )
 
         brand, ingredients = picked
         mapped = await self._canonical(ingredients) if ingredients else {}

@@ -56,6 +56,8 @@ async def world(owner_conn: psycopg.Connection, driver: neo4j.AsyncDriver, tag: 
                 ("Tramazac 50 Capsule", [f"{tag}tramadol"]),
                 ("Tramazax 50 Capsule", [f"{tag}sertraline"]),
                 ("Oddmed Tablet", [f"{tag}notinddinter"]),
+                ("Brufen 400 Tablet", [ibu]),
+                ("Brufen MR Tablet", [ibu, f"{tag}tizanidine"]),
             ],
         )
     owner_conn.execute(
@@ -245,3 +247,109 @@ async def test_condition_explorer(driver: neo4j.AsyncDriver, tag: str) -> None:
     assert sorted(top.matched_symptoms) == [f"{tag} diarrhoea", f"{tag} fever"]
     assert top.red_flags == ["Bleeding"]
     assert result.unmatched == []
+
+
+# ---- M4: the M2 gaps (spec 4.5) ----
+
+
+async def test_short_brand_resolves_by_word_similarity(
+    resolver: MedicineResolver, world: str
+) -> None:
+    r = await resolver.resolve("Brufen 400")
+    assert (r.status, r.ingredients) == ("resolved", [f"{world}Ibuprofen"])
+
+
+async def test_ambiguous_brand_keeps_the_shared_ingredient(
+    resolver: MedicineResolver, world: str
+) -> None:
+    r = await resolver.resolve("Brufen")
+    assert r.status == "ambiguous"
+    assert {"Brufen 400 Tablet", "Brufen MR Tablet"} <= set(r.candidates)
+    assert r.shared_ingredients == [f"{world}Ibuprofen"]
+
+
+async def test_interactions_use_the_shared_ingredient_of_an_ambiguous_brand(
+    resolver: MedicineResolver, driver: neo4j.AsyncDriver, world: str
+) -> None:
+    report = await InteractionService(resolver, driver).check(["Brufen", "Warf 5"])
+    assert [(f.severity, {f.a, f.b}) for f in report.findings] == [
+        ("Major", {f"{world}Ibuprofen", f"{world}Warfarin"})
+    ]
+    assert report.unresolved == ["Brufen (ambiguous)"]
+
+
+async def test_drug_classes(
+    driver: neo4j.AsyncDriver, resolver: MedicineResolver, world: str
+) -> None:
+    await driver.execute_query(
+        "MERGE (k:DrugClass {name: $k}) SET k.ns = $t, k.label = 'NSAIDs' "
+        "WITH k MATCH (d:Drug {key: $d}) CREATE (d)-[:MEMBER_OF {ns: $t}]->(k)",
+        k=f"{world}nsaid",
+        d=f"{world}ibuprofen",
+        t=world,
+    )
+    classes = await InteractionService(resolver, driver).drug_classes(
+        [f"{world}Ibuprofen", f"{world}Warfarin"]
+    )
+    assert classes == {f"{world}Ibuprofen": [f"{world}nsaid"], f"{world}Warfarin": []}
+
+
+class _DictRedis:
+    def __init__(self) -> None:
+        self.data: dict[str, str] = {}
+
+    async def get(self, key: str) -> str | None:
+        return self.data.get(key)
+
+    async def set(self, key: str, value: str, ex: int) -> None:
+        self.data[key] = value
+
+
+async def test_graph_lookups_are_cached(
+    resolver: MedicineResolver, driver: neo4j.AsyncDriver, world: str
+) -> None:
+    from etheria.cache.json_cache import JsonCache
+
+    cache = JsonCache(_DictRedis())
+    service = InteractionService(resolver, driver, cache=cache)
+    first = await service.check(["Warf 5", "Dolo 650"])
+    second = await service.check(["Warf 5", "Dolo 650"])
+    assert first == second
+    assert cache.hits >= 1
+
+
+async def test_conditions_rank_by_coverage(driver: neo4j.AsyncDriver, tag: str) -> None:
+    curated = Curated(
+        symptoms=[
+            Symptom(code=f"{tag}_head", name=f"{tag} headache", lay_terms=[], source=SRC),
+            Symptom(code=f"{tag}_fev", name=f"{tag} fever", lay_terms=[], source=SRC),
+            Symptom(code=f"{tag}_neck", name=f"{tag} stiff neck", lay_terms=[], source=SRC),
+        ],
+        conditions=[
+            Condition(
+                icd10="Z99.C1",
+                name=f"{tag} meningitis",
+                body_systems=["Neurological"],
+                india_common=True,
+                symptoms={f"{tag}_head": 1.0, f"{tag}_fev": 1.0, f"{tag}_neck": 1.0},
+                source=SRC,
+            ),
+            Condition(
+                icd10="Z99.C2",
+                name=f"{tag} tension headache",
+                body_systems=["Neurological"],
+                india_common=True,
+                symptoms={f"{tag}_head": 0.8, f"{tag}_neck": 0.2},
+                source=SRC,
+            ),
+        ],
+        drug_classes=[],
+        critical=[],
+        synonyms={},
+    )
+    await load_curated(driver, curated, ns=tag)
+    explorer = ConditionExplorer(driver)
+    result = await explorer.explore([f"{tag} headache"], k=5)
+    assert [h.icd10 for h in result.conditions] == ["Z99.C2", "Z99.C1"]
+    assert result.conditions[0].coverage == pytest.approx(0.8)
+    assert result.conditions[1].coverage == pytest.approx(1 / 3)

@@ -40,14 +40,19 @@ async def current_user_id(
         return decode_access_token(credentials.credentials, secret).user_id
     except InvalidToken:
         raise NotAuthenticated(
-            "Your session has expired, please sign in again", code="token_invalid", headers=_CHALLENGE
+            "Your session has expired, please sign in again",
+            code="token_invalid",
+            headers=_CHALLENGE,
         ) from None
 
 
 def require_same_origin(request: Request) -> None:
     """CSRF guard for the cookie-authenticated endpoints (spec 9)."""
     origin = request.headers.get("origin")
-    if request.headers.get("x-requested-with") is None or origin not in request.app.state.settings.cors_origins:
+    if (
+        request.headers.get("x-requested-with") is None
+        or origin not in request.app.state.settings.cors_origins
+    ):
         raise Forbidden("Cross-site request blocked", code="csrf_failed")
 
 

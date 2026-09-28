@@ -38,7 +38,9 @@ def _token_out(issued: IssuedTokens, response: Response, settings: Settings) -> 
         samesite="lax",
         secure=settings.cookie_secure,
     )
-    return TokenOut(access_token=issued.access_token, expires_in=issued.expires_in, user=issued.user)
+    return TokenOut(
+        access_token=issued.access_token, expires_in=issued.expires_in, user=issued.user
+    )
 
 
 @router.post("/register", status_code=201)
@@ -78,17 +80,25 @@ async def refresh(
     token: RefreshCookie = None,
 ) -> TokenOut:
     if not token:
-        raise NotAuthenticated("Your session has expired, please sign in again", code="invalid_refresh")
+        raise NotAuthenticated(
+            "Your session has expired, please sign in again", code="invalid_refresh"
+        )
     issued = await svc.refresh(token, meta)
     return _token_out(issued, response, _settings(request))
 
 
 @router.post("/logout", status_code=204, dependencies=[Depends(require_same_origin)])
-async def logout(request: Request, svc: AuthServiceDep, meta: ClientMetaDep, token: RefreshCookie = None) -> Response:
+async def logout(
+    request: Request, svc: AuthServiceDep, meta: ClientMetaDep, token: RefreshCookie = None
+) -> Response:
     await svc.logout(token, meta)
     response = Response(status_code=204)
     response.delete_cookie(
-        REFRESH_COOKIE, path="/auth", httponly=True, samesite="lax", secure=_settings(request).cookie_secure
+        REFRESH_COOKIE,
+        path="/auth",
+        httponly=True,
+        samesite="lax",
+        secure=_settings(request).cookie_secure,
     )
     return response
 

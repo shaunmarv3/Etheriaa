@@ -43,14 +43,18 @@ def test_unsigned_token_is_rejected() -> None:
 
 def test_token_without_jti_is_rejected() -> None:
     now = int(datetime.now(UTC).timestamp())
-    token = jwt.encode({"sub": str(uuid4()), "iat": now, "exp": now + 60}, SECRET, algorithm="HS256")
+    token = jwt.encode(
+        {"sub": str(uuid4()), "iat": now, "exp": now + 60}, SECRET, algorithm="HS256"
+    )
     with pytest.raises(InvalidToken):
         decode_access_token(token, SECRET)
 
 
 def test_token_with_a_non_uuid_subject_is_rejected() -> None:
     now = int(datetime.now(UTC).timestamp())
-    token = jwt.encode({"sub": "admin", "iat": now, "exp": now + 60, "jti": "j"}, SECRET, algorithm="HS256")
+    token = jwt.encode(
+        {"sub": "admin", "iat": now, "exp": now + 60, "jti": "j"}, SECRET, algorithm="HS256"
+    )
     with pytest.raises(InvalidToken):
         decode_access_token(token, SECRET)
 

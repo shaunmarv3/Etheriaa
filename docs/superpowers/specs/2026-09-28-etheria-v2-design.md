@@ -433,6 +433,8 @@ These files are drafted with a source cited for each entry, and reviewed by the 
 
 **Row-level security** on `conversations`, `messages`, `documents`, `document_chunks`, `lab_results` and `medications`, with the policy `user_id = current_setting('app.user_id')::uuid`. The app connects as a non-owner role (`etheria_app`), and every request transaction runs `SET LOCAL app.user_id`. Application code also filters by user; RLS is the second line of defence, and it is tested on its own.
 
+Child tables carry composite foreign keys to their parent's `(id, user_id)` (messages -> conversations; chunks, lab results and medications -> documents). Referential-integrity checks bypass RLS, so without these a user could attach a row to another user's conversation. The app role cannot read partitions directly (only through the parent's policy), cannot write `medicine_brands` / `drug_synonyms`, and cannot delete `audit_log` rows.
+
 **Partition maintenance:** a monthly Temporal schedule creates partitions three months ahead. A default partition catches strays, and the readiness check reports it if it is ever non-empty.
 
 **Erasure** (`DELETE /user`): one transaction removes the user's conversations, messages, documents and their encrypted files, chunks, lab results, medications, refresh tokens and checkpoint threads. `audit_log` rows are retained for the one-year log requirement. They contain no health content, and on erasure their `user_ref` is replaced by an HMAC of the user ID.
@@ -469,7 +471,7 @@ Redis also holds rate-limit counters, and nothing else: v1's session cache is re
 - **Access token:** JWT (HS256, `JWT_SECRET`), 15-minute lifetime, claims `sub`, `iat`, `exp`, `jti`. Sent as a `Bearer` header and held in memory by the frontend, never in localStorage.
 - **Refresh token:** a 256-bit random opaque value, stored as a SHA-256 hash, 14-day lifetime, in an httpOnly `SameSite=Lax` cookie scoped to `/auth` (`Secure` whenever served over HTTPS). **Rotated on every refresh.** Presenting an already-rotated token revokes the whole token family (reuse detection) and is written to the audit log.
 - **CORS and CSRF:** CORS allows the configured frontend origin only, with credentials. Because `/auth/refresh` and `/auth/logout` rely on the cookie, they also require an `Origin` matching `CORS_ORIGINS` and an `X-Requested-With` header.
-- **Endpoints:** `POST /auth/register` and `POST /auth/login` (both return the access token and set the cookie), `POST /auth/refresh`, `POST /auth/logout`, `GET /auth/me`.
+- **Endpoints:** `POST /auth/register` and `POST /auth/login` (both return the access token and set the cookie), `POST /auth/refresh`, `POST /auth/logout`, `GET /auth/me`. Registration is rate limited to 5 per minute per IP (argon2id makes each attempt expensive). Error codes: `email_taken`, `invalid_credentials`, `invalid_refresh`, `refresh_reused`, `token_invalid`, `csrf_failed`, `rate_limited`.
 
 ## 10. API contract
 
@@ -508,7 +510,7 @@ Errors use one JSON shape: `{"error": {"code", "message", "request_id"}}`.
 | Malicious upload | Magic-byte typing; size and page limits; encrypted-PDF rejection; decompression-bomb guard; random storage names; file content is never executed |
 | Unsafe medical output | Section 4.6 |
 | Data exfiltration through third-party LLMs | PII masking before any LLM call; synthetic data only; tracing off by default |
-| Abuse and cost blow-up | Rate limits (chat 20/min per user, uploads 10/hour, login 5/min per IP + email); bounded agent loops; per-node timeouts |
+| Abuse and cost blow-up | Rate limits (chat 20/min per user, uploads 10/hour, login 5/min per IP + email, register 5/min per IP); bounded agent loops; per-node timeouts |
 | Secret leakage | Secrets come from the environment only; `.env` is gitignored; startup fails when a required secret is missing |
 
 ### 11.2 DPDP Rules 2025, Rule 6 mapping
@@ -534,7 +536,7 @@ DeepSeek (API servers outside India), the M5 voice provider if it is hosted, and
 
 ## 13. Frontend (a copy of v1)
 Copied from `D:\Etheria\etheria` into `frontend/`; the original is not modified. All changes are made in the copy:
-1. **Auth.** Remove `@clerk/nextjs`. Add an `AuthProvider` and drop-in `useAuth()` / `useUser()` hooks exposing the surface the app already uses (`getToken`, `isSignedIn`, `isLoaded`, `userId`, the user's email), so the 18 importing files change their import path rather than their logic. Add sign-in and sign-up pages. The access token lives in memory, with a silent refresh on load and on any 401 through `/auth/refresh`, plus client-side route guarding. Replace `ClerkProvider`, `clerkMiddleware` and the Clerk logic in `proxy.ts`. Delete `app/dev/token/`.
+1. **Auth.** Remove `@clerk/nextjs`. Add an `AuthProvider` and drop-in `useAuth()` / `useUser()` hooks exposing the surface the app already uses (`getToken`, `isSignedIn`, `isLoaded`, `userId`, the user's email), so the 18 importing files change their import path rather than their logic. Add sign-in and sign-up pages. The access token lives in memory, with a silent refresh on load and on any 401 through `/auth/refresh`, plus client-side route guarding. Replace `ClerkProvider`, `clerkMiddleware` and the Clerk logic in `proxy.ts`. Delete `app/dev/token/`. Refresh is single-flight in the client: concurrent 401s share one `/auth/refresh` call, because a second refresh with the same cookie is treated as reuse and revokes the session.
 2. **Removed features.** Delete the profile, data export, feedback and admin UI together with their `api.ts` functions (`fetchProfile`, `updateProfile`, `exportUserData`, `submitFeedback`, `fetchAdmin*`, `clearAdminCache`), plus the never-called `sendChat`, `editMessage`, `deleteMessage`, `renameDocument` and `exportSession`.
 3. **Download.** `getDocumentDownloadUrl` becomes an authenticated fetch into a blob, followed by a save.
 4. **Optional (M6 stretch).** Show `status` events as a progress line under the typing indicator.

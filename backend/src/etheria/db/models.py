@@ -43,7 +43,9 @@ class AuditLog(Base):
 
     __tablename__ = "audit_log"
 
-    id: Mapped[uuid.UUID] = mapped_column(primary_key=True, server_default=text("gen_random_uuid()"))
+    id: Mapped[uuid.UUID] = mapped_column(
+        primary_key=True, server_default=text("gen_random_uuid()")
+    )
     created_at: Mapped[datetime] = mapped_column(primary_key=True, server_default=func.now())
     user_ref: Mapped[str | None]
     action: Mapped[str]

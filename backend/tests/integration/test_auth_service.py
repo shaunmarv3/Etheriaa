@@ -98,7 +98,9 @@ async def test_concurrent_refresh_never_issues_two_successors(svc: AuthService) 
     assert len(failures) == 1 and failures[0].code == "refresh_reused"
 
 
-async def test_expired_refresh_token_is_rejected(svc: AuthService, owner_conn: psycopg.Connection) -> None:
+async def test_expired_refresh_token_is_rejected(
+    svc: AuthService, owner_conn: psycopg.Connection
+) -> None:
     issued = await svc.register(new_email(), PW, None, META)
     owner_conn.execute(
         "update refresh_tokens set expires_at = now() - interval '1 second' where user_id = %s",

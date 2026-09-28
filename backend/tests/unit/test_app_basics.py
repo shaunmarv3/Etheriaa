@@ -31,7 +31,11 @@ async def test_not_found_uses_the_error_shape(client: httpx.AsyncClient) -> None
     r = await client.get("/nope")
     assert r.status_code == 404
     assert r.json() == {
-        "error": {"code": "not_found", "message": "Not Found", "request_id": r.headers["x-request-id"]}
+        "error": {
+            "code": "not_found",
+            "message": "Not Found",
+            "request_id": r.headers["x-request-id"],
+        }
     }
 
 
@@ -46,7 +50,9 @@ async def test_app_errors_map_to_status_and_code(app: FastAPI, client: httpx.Asy
     assert r.json()["error"]["message"] == "That name is taken"
 
 
-async def test_unhandled_errors_are_500_without_internals(app: FastAPI, client: httpx.AsyncClient) -> None:
+async def test_unhandled_errors_are_500_without_internals(
+    app: FastAPI, client: httpx.AsyncClient
+) -> None:
     async def crash() -> None:
         raise RuntimeError("secret internals")
 
@@ -62,7 +68,9 @@ async def test_each_request_is_logged_as_json(
     client: httpx.AsyncClient, capsys: pytest.CaptureFixture[str]
 ) -> None:
     r = await client.get("/health")
-    lines = [json.loads(line) for line in capsys.readouterr().out.splitlines() if line.startswith("{")]
+    lines = [
+        json.loads(line) for line in capsys.readouterr().out.splitlines() if line.startswith("{")
+    ]
     entry = next(e for e in lines if e.get("event") == "request")
     assert entry["request_id"] == r.headers["x-request-id"]
     assert (entry["path"], entry["status"]) == ("/health", 200)

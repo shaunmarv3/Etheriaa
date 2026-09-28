@@ -21,7 +21,9 @@ def test_extensions_are_installed(owner_conn: psycopg.Connection) -> None:
     assert {"pg_trgm", "citext"} <= set(ext)
 
 
-def test_audit_log_has_four_monthly_partitions_and_a_default(owner_conn: psycopg.Connection) -> None:
+def test_audit_log_has_four_monthly_partitions_and_a_default(
+    owner_conn: psycopg.Connection,
+) -> None:
     parts = _partitions(owner_conn, "audit_log")
     assert "audit_log_default" in parts
     assert len(parts) == 5

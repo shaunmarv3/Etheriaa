@@ -10,8 +10,9 @@ Etheria v2: an India-aware AI health assistant (triage + health information, not
 
 ## Current state
 
-- Spec approved 2026-09-28. Plans live in `docs/superpowers/plans/`. M0 done (see `docs/spikes/m0-results.md`). M1 (foundation) is next; its plan is still to be written.
-- Workflow: plan per milestone -> execute task-by-task -> milestones M0-M7 (spec section 17).
+- Spec approved 2026-09-28. Plans live in `docs/superpowers/plans/`; workflow: plan per milestone -> execute task-by-task -> milestones M0-M7 (spec section 17).
+- M0 done (`docs/spikes/m0-results.md`). M1 done: settings, logging, error shape, schema with RLS and partitions, auth, health/readiness, test harness, import contracts.
+- Next: M2 (knowledge layer). `BIOPORTAL_API_KEY` and `NCBI_API_KEY` are already in `backend/.env`.
 - Remote: `origin` = https://github.com/shaunmarv3/etheria-v2, branch `main`.
 
 ## Hard rules
@@ -27,6 +28,9 @@ Etheria v2: an India-aware AI health assistant (triage + health information, not
 
 ```bash
 docker compose -f infra/docker-compose.yml up -d   # Postgres, Neo4j, Redis, Temporal (UI :8233)
+cd backend && uv run etheria migrate               # alembic upgrade head (owner role)
+uv run pytest -m "not integration"                 # unit tests, no docker needed
+uv run pytest                                      # everything (needs docker infra)
 cd backend && uv sync                              # Python 3.12, uv + pyproject + lockfile
 uv run etheria api            # FastAPI + in-process LangGraph chat graph
 uv run etheria worker         # Temporal worker: ingestion + schedules

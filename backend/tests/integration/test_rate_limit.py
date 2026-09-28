@@ -4,7 +4,9 @@ from etheria.cache.rate_limit import RateLimiter
 from etheria.core.settings import Settings
 
 
-async def test_fixed_window_allows_the_limit_then_blocks(settings: Settings, clean_redis: None) -> None:
+async def test_fixed_window_allows_the_limit_then_blocks(
+    settings: Settings, clean_redis: None
+) -> None:
     redis = Redis.from_url(settings.redis_url)
     limiter = RateLimiter(redis)
     outcomes = [await limiter.hit("t:a", limit=3, window_s=60) for _ in range(4)]

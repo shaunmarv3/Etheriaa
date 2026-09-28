@@ -14,7 +14,12 @@ from etheria.core.settings import Settings
 from etheria.db.session import Database
 
 USER_TABLES = [
-    "conversations", "messages", "documents", "document_chunks", "lab_results", "medications",
+    "conversations",
+    "messages",
+    "documents",
+    "document_chunks",
+    "lab_results",
+    "medications",
 ]
 
 
@@ -32,22 +37,41 @@ def _one(conn: psycopg.Connection, sql: str, params: tuple) -> UUID:
 
 
 def _seed(conn: psycopg.Connection) -> Tenant:
-    uid = _one(conn, "insert into users (email, password_hash) values (%s, 'x') returning id",
-               (f"{uuid4().hex[:12]}@example.com",))
-    conv = _one(conn, "insert into conversations (user_id, title) values (%s, 'chat') returning id",
-                (uid,))
-    conn.execute("insert into messages (conversation_id, user_id, role, content) "
-                 "values (%s, %s, 'user', 'hi')", (conv, uid))
-    doc = _one(conn, "insert into documents (user_id, filename, mime_type, storage_key, sha256, "
-                     "size_bytes) values (%s, 'r.pdf', 'application/pdf', %s, %s, 10) returning id",
-               (uid, uuid4().hex, uuid4().hex))
-    conn.execute("insert into document_chunks (document_id, user_id, chunk_index, source_kind, "
-                 "content, embedding) values (%s, %s, 0, 'text_layer', 'Hb 10.9', "
-                 "array_fill(0.1::real, ARRAY[1024])::vector)", (doc, uid))
-    conn.execute("insert into lab_results (user_id, document_id, test_name, value_text, flag) "
-                 "values (%s, %s, 'Haemoglobin', '10.9', 'low')", (uid, doc))
-    conn.execute("insert into medications (user_id, document_id, name_raw, source) "
-                 "values (%s, %s, 'Dolo 650', 'prescription')", (uid, doc))
+    uid = _one(
+        conn,
+        "insert into users (email, password_hash) values (%s, 'x') returning id",
+        (f"{uuid4().hex[:12]}@example.com",),
+    )
+    conv = _one(
+        conn, "insert into conversations (user_id, title) values (%s, 'chat') returning id", (uid,)
+    )
+    conn.execute(
+        "insert into messages (conversation_id, user_id, role, content) "
+        "values (%s, %s, 'user', 'hi')",
+        (conv, uid),
+    )
+    doc = _one(
+        conn,
+        "insert into documents (user_id, filename, mime_type, storage_key, sha256, "
+        "size_bytes) values (%s, 'r.pdf', 'application/pdf', %s, %s, 10) returning id",
+        (uid, uuid4().hex, uuid4().hex),
+    )
+    conn.execute(
+        "insert into document_chunks (document_id, user_id, chunk_index, source_kind, "
+        "content, embedding) values (%s, %s, 0, 'text_layer', 'Hb 10.9', "
+        "array_fill(0.1::real, ARRAY[1024])::vector)",
+        (doc, uid),
+    )
+    conn.execute(
+        "insert into lab_results (user_id, document_id, test_name, value_text, flag) "
+        "values (%s, %s, 'Haemoglobin', '10.9', 'low')",
+        (uid, doc),
+    )
+    conn.execute(
+        "insert into medications (user_id, document_id, name_raw, source) "
+        "values (%s, %s, 'Dolo 650', 'prescription')",
+        (uid, doc),
+    )
     return Tenant(uid, conv, doc)
 
 
@@ -57,7 +81,9 @@ def tenants(owner_conn: psycopg.Connection) -> tuple[Tenant, Tenant]:
 
 
 @pytest.mark.parametrize("table", USER_TABLES)
-async def test_user_sees_only_own_rows(db: Database, tenants: tuple[Tenant, Tenant], table: str) -> None:
+async def test_user_sees_only_own_rows(
+    db: Database, tenants: tuple[Tenant, Tenant], table: str
+) -> None:
     a, _ = tenants
     async with db.for_user(a.user_id) as s:
         owners = set((await s.execute(text(f"select user_id from {table}"))).scalars())
@@ -65,26 +91,37 @@ async def test_user_sees_only_own_rows(db: Database, tenants: tuple[Tenant, Tena
 
 
 @pytest.mark.parametrize("table", USER_TABLES)
-async def test_no_user_context_sees_nothing(db: Database, tenants: tuple[Tenant, Tenant], table: str) -> None:
+async def test_no_user_context_sees_nothing(
+    db: Database, tenants: tuple[Tenant, Tenant], table: str
+) -> None:
     async with db.system() as s:
         count = (await s.execute(text(f"select count(*) from {table}"))).scalar_one()
     assert count == 0
 
 
-async def test_cannot_insert_a_row_for_another_user(db: Database, tenants: tuple[Tenant, Tenant]) -> None:
+async def test_cannot_insert_a_row_for_another_user(
+    db: Database, tenants: tuple[Tenant, Tenant]
+) -> None:
     a, b = tenants
     with pytest.raises(DBAPIError, match="row-level security"):
         async with db.for_user(a.user_id) as s:
-            await s.execute(text("insert into conversations (user_id, title) values (:u, 'x')"),
-                            {"u": b.user_id})
+            await s.execute(
+                text("insert into conversations (user_id, title) values (:u, 'x')"),
+                {"u": b.user_id},
+            )
 
 
-async def test_cannot_update_or_delete_another_users_rows(db: Database, tenants: tuple[Tenant, Tenant]) -> None:
+async def test_cannot_update_or_delete_another_users_rows(
+    db: Database, tenants: tuple[Tenant, Tenant]
+) -> None:
     a, b = tenants
     async with db.for_user(a.user_id) as s:
-        updated = await s.execute(text("update conversations set title = 'pwned' where id = :c"),
-                                  {"c": b.conversation_id})
-        deleted = await s.execute(text("delete from lab_results where user_id = :u"), {"u": b.user_id})
+        updated = await s.execute(
+            text("update conversations set title = 'pwned' where id = :c"), {"c": b.conversation_id}
+        )
+        deleted = await s.execute(
+            text("delete from lab_results where user_id = :u"), {"u": b.user_id}
+        )
     assert (updated.rowcount, deleted.rowcount) == (0, 0)
 
 
@@ -95,8 +132,10 @@ async def test_cannot_attach_a_message_to_another_users_conversation(
     with pytest.raises(IntegrityError):
         async with db.for_user(a.user_id) as s:
             await s.execute(
-                text("insert into messages (conversation_id, user_id, role, content) "
-                     "values (:c, :u, 'user', 'x')"),
+                text(
+                    "insert into messages (conversation_id, user_id, role, content) "
+                    "values (:c, :u, 'user', 'x')"
+                ),
                 {"c": b.conversation_id, "u": a.user_id},
             )
 

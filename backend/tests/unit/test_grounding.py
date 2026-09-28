@@ -88,6 +88,15 @@ def test_unparseable_range_keeps_row_with_unknown_flag() -> None:
     assert out.flag == "unknown" and out.value_numeric is None
 
 
+def test_placeholder_range_stored_as_none() -> None:
+    # Reports print "-" or "NA" in the range column when there is no range.
+    page = "Estimated Average Glucose 148 mg/dL -"
+    for placeholder in ("-", " -- ", "NA", "N/A", "—"):
+        r = PagedLabRow(test_name="eAG", value_text="148", ref_range_text=placeholder, page=1)
+        (out,), _ = validate_lab_rows([r], {1: page}, None)
+        assert out.ref_range_text is None and out.flag == "unknown", placeholder
+
+
 def test_flag_is_computed_not_trusted() -> None:
     draft = LabRowDraft.model_validate(
         {"test_name": "Hb", "value_text": "10.9", "ref_range_text": "13.0 - 17.0", "flag": "normal"}

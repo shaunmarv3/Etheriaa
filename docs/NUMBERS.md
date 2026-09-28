@@ -71,3 +71,30 @@ The Neo4j volume was 541 MB empty in M0 (256 MB preallocated transaction logs); 
 |---|---:|
 | First run (phase 7 makes ~2,380 external lookups: NLM, BioPortal, RxNav) | 3 min 54 s |
 | Re-run (all lookups cached in Redis; every count identical) | 13 s |
+
+## Ingestion (M3, measured 2026-09-28)
+
+Extraction eval (`uv run etheria eval --suite extraction`, report in `docs/evals/extraction.md`), `deepseek-flash` with thinking disabled, 9 synthetic fixtures:
+
+| What | Value |
+|---|---:|
+| Ground-truth lab rows (6 lab reports) | 54 |
+| Recovered with the correct name, value, unit, range and flag | 54 (100.0%; target 95%) |
+| First run, before placeholder ranges ("-") were normalised in code | 53 (98.1%) |
+| Stored values failing the grounding check | 0 |
+| Lab values stored from the scanned image | 0 |
+| Injected report: LDL stored as printed (162), not the injected 90 | yes |
+| Medications recovered (discharge summary + prescription) | 6 / 6 |
+| Pipeline time per document without embeddings (parse, mask, classify, extract, ground) | 1.8 - 3.3 s |
+
+End to end through the API, the worker and Temporal (real DeepSeek, real BGE-large on CPU):
+
+| What | Value |
+|---|---:|
+| `lab_fullbody.pdf` (3 pages): upload to `done` (`processed_at - uploaded_at`) | 5.2 s |
+| Lab rows stored / flagged abnormal | 26 / 6 |
+| Chunks stored (masked text only) | 3 |
+| Worker hard-killed (`Stop-Process -Force`) after 4 of 8 activities; restarted worker ran only the remaining 3, result `done` | pass |
+| BGE-large-en-v1.5 in the Hugging Face cache on the host (not Docker) | 1.3 GB |
+
+Docker after M3 (`docker system df -v`): images unchanged (1.90 GB); volumes `etheria_pgdata` 651 MB, `etheria_neo4jdata` 27 MB, `etheria_temporaldata` 1.4 MB; total 2.58 GB. Not counted in the M2 table: the Neo4j container's writable layer is 288 MB (2.87 GB with it), which M7 should look into.

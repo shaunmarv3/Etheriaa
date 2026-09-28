@@ -57,3 +57,26 @@ def worker() -> None:
     from etheria.ingestion.worker import run_worker
 
     asyncio.run(run_worker(get_settings()), loop_factory=_loop_factory())
+
+
+@app.command(name="eval")
+def eval_(
+    suite: str = typer.Option("extraction", help="Which eval to run: extraction (M3)."),
+) -> None:
+    """Run an eval with the real models (opt-in: it costs money). Writes docs/evals/."""
+    from etheria.core.settings import BACKEND_DIR, get_settings
+
+    if suite != "extraction":
+        typer.echo(f"unknown suite: {suite}", err=True)
+        raise typer.Exit(2)
+    from etheria.ingestion.eval import run_extraction_eval
+
+    code = asyncio.run(
+        run_extraction_eval(
+            get_settings(),
+            BACKEND_DIR / "tests" / "fixtures" / "reports",
+            BACKEND_DIR.parent / "docs" / "evals" / "extraction.md",
+        ),
+        loop_factory=_loop_factory(),
+    )
+    raise typer.Exit(code)

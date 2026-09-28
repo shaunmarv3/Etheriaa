@@ -13,7 +13,8 @@ Etheria v2: an India-aware AI health assistant (triage + health information, not
 - Spec approved 2026-09-28. Plans live in `docs/superpowers/plans/`; workflow: plan per milestone -> execute task-by-task -> milestones M0-M7 (spec section 17).
 - M0 done (`docs/spikes/m0-results.md`). M1 done: settings, logging, error shape, schema with RLS and partitions, auth, health/readiness, test harness, import contracts.
 - M2 done (plan `docs/superpowers/plans/2026-09-28-m2-knowledge.md`): medical API clients (`medical_apis/`), knowledge services (`knowledge/`: resolver, interactions, condition explorer), seeder (`seed/`), curated YAML (`seed/data/`, `safety/red_flags.yaml`), real counts in `docs/NUMBERS.md`. The curated YAML still needs the owner's review.
-- Next: M3 (ingestion).
+- M3 done (plan `docs/superpowers/plans/2026-09-28-m3-ingestion.md`): `POST/GET/DELETE /upload/` + download (`api/routers/upload.py`), encrypted `FileStore`, `IngestDocumentWorkflow` + `IngestionActivities` (`ingestion/`), `llm/registry.py` + `prompts/*.md`, BGE embeddings (`retrieval/embedding.py`), synthetic fixtures (`tests/fixtures/reports/`, regenerate with `generate.py`), extraction eval 54/54 (`docs/evals/extraction.md`). Tesseract is not installed yet (owner action; scanned uploads fail with `ocr_unavailable` until it is).
+- Next: M4 (reasoning graph).
 - Remote: `origin` = https://github.com/shaunmarv3/etheria-v2, branch `main`.
 
 ## Hard rules
@@ -34,10 +35,10 @@ uv run pytest -m "not integration"                 # unit tests, no docker neede
 uv run pytest                                      # everything (needs docker infra)
 cd backend && uv sync                              # Python 3.12, uv + pyproject + lockfile
 uv run etheria api            # FastAPI + in-process LangGraph chat graph
-uv run etheria worker         # Temporal worker: ingestion + schedules
+uv run etheria worker         # Temporal worker: ingestion (loads BGE-large, ~25 s)
 uv run etheria seed           # knowledge layer: 8 phases + canaries -> docs/NUMBERS.md (idempotent)
 uv run etheria seed --verify-only   # counts + canaries only; --skip-codes skips external lookups
-uv run etheria eval           # graph/extraction evals with real models (opt-in, costs money)
+uv run etheria eval --suite extraction   # extraction eval, real DeepSeek (opt-in, costs cents) -> docs/evals/
 uv run etheria graph-diagram  # regenerate the Mermaid diagram in docs/ARCHITECTURE.md
 uv run pytest tests/unit/test_x.py::test_name     # single test
 uv run pytest tests/live --live                   # real external APIs + curated source URLs (opt-in)

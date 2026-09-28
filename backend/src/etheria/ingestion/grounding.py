@@ -12,6 +12,8 @@ from etheria.ingestion.labvalues import Sex, compute_flag, parse_number, parse_r
 from etheria.ingestion.schemas import GroundingStats, LabResultRow, PagedLabRow, PagedMedication
 
 _NUMBER_TOKEN = re.compile(r"\d[\d,]*(?:\.\d+)?")
+# What reports print in the range column when there is no range.
+_NO_RANGE = {"-", "--", "---", "–", "—", "na", "n/a", "nil", "none"}
 
 
 def normalise_ws(s: str) -> str:
@@ -36,6 +38,11 @@ def _text_on_page(text: str, page: str) -> bool:
     return text in page
 
 
+def _range_text(text: str | None) -> str | None:
+    text = normalise_ws(text or "")
+    return None if not text or text.casefold() in _NO_RANGE else text
+
+
 def is_grounded(row: PagedLabRow, page_text: str) -> bool:
     page = normalise_ws(page_text)
     if not _text_on_page(row.value_text, page):
@@ -54,14 +61,15 @@ def validate_lab_rows(
             stats.rows_dropped_ungrounded += 1
             continue
         value = parse_number(row.value_text)
-        rng = parse_range(row.ref_range_text, sex)
+        range_text = _range_text(row.ref_range_text)
+        rng = parse_range(range_text, sex)
         kept.append(
             LabResultRow(
                 test_name=normalise_ws(row.test_name),
                 value_text=normalise_ws(row.value_text),
                 value_numeric=value,
                 unit=normalise_ws(row.unit) if row.unit else None,
-                ref_range_text=normalise_ws(row.ref_range_text) if row.ref_range_text else None,
+                ref_range_text=range_text,
                 ref_low=rng.low if rng else None,
                 ref_high=rng.high if rng else None,
                 flag=compute_flag(value, rng),

@@ -77,6 +77,8 @@ select = ["E", "F", "I", "UP", "B", "ASYNC"]
 "migrations/versions/*.py" = ["E501"]
 # The seeder is a one-shot batch job: blocking file I/O on its event loop is fine.
 "src/etheria/seed/*.py" = ["ASYNC230", "ASYNC240"]
+# The extraction eval is also a one-shot batch job.
+"src/etheria/ingestion/eval.py" = ["ASYNC230", "ASYNC240"]
 # The count table in verify.py is hand-written Cypher; like SQL, it reads better unwrapped.
 "src/etheria/seed/verify.py" = ["ASYNC230", "ASYNC240", "E501"]
 

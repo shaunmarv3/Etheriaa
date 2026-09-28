@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | Date | 2026-09-28 |
-| Status | Approved 2026-09-28 (owner: "let's build"); M0 done (`docs/spikes/m0-results.md`); M1 done; M2 done pending the owner's review of the curated files (6.5) |
+| Status | Approved 2026-09-28 (owner: "let's build"); M0 done (`docs/spikes/m0-results.md`); M1 done; M2 done pending the owner's review of the curated files (6.5); M3 done (ingestion; `docs/evals/extraction.md`) |
 | Repo | `D:\etheria-v2` -> https://github.com/shaunmarv3/etheria-v2 |
 | Reference only, never modified | `D:\Etheria\etheria` (v1 frontend), `D:\Etheria\etheria-backend\etheria-backend` (v1 backend) |
 | Next step after approval | `writing-plans` -> staged implementation plan |
@@ -355,24 +355,23 @@ DeepSeek's structured-output and tool-calling reliability is verified first, in 
 - A per-user SHA-256 duplicate check returns the existing document.
 - Rate limit: 10 uploads per user per hour.
 
-The response is `{document_id, filename, status: "pending", page_count}`, and the Temporal workflow starts.
+The response is `{document_id, filename, status: "pending", page_count}` (201), and the Temporal workflow starts. A duplicate returns the existing document (200) without starting a workflow. If the workflow cannot be started, the row and the file are removed and the request fails with 503 `ingestion_unavailable`, so no document waits in `pending` forever. Rejection codes: `file_too_large` (413), `unsupported_type` (415), `too_many_pages`, `encrypted_pdf`, `image_too_large`, `corrupt_file`, `empty_file` (400). Images over 40 megapixels are rejected before any pixel is decoded.
 
 ### 5.2 Storage
-Files are encrypted with AES-256-GCM before being written to `data/uploads/` (key from `DATA_ENCRYPTION_KEY`, a random 96-bit nonce per file). `GET /upload/{id}/download` decrypts and streams the file to its owner.
+Files are encrypted with AES-256-GCM before being written to `data/uploads/` (key from `DATA_ENCRYPTION_KEY`, a random 96-bit nonce per file). The blob is `nonce || ciphertext || tag`, with the storage key as associated data, so a file copied under another document's key fails to decrypt. `GET /upload/{id}/download` decrypts and returns the file to its owner; another user's document id is reported as 404, never 403. Upload, download and delete are written to `audit_log`.
 
 ### 5.3 Workflow: `IngestDocumentWorkflow(document_id)`
 
 | Step | Activity | Retry policy | Notes |
 |---|---|---|---|
-| 1 | `parse_document` | 3 attempts | Per page: use the text layer if it has at least 50 characters, otherwise OCR (Tesseract). Records `source_kind` per page: `text_layer` or `ocr` |
-| 2 | `mask_pii` | none (deterministic) | Section 5.4 |
+| 1-2 | `parse_and_mask` | 3 attempts, 30 s heartbeat | Per page: use the text layer if it has at least 50 characters, otherwise OCR (Tesseract). Records `source_kind` per page: `text_layer` or `ocr`. Then masks PII (5.4) in the same activity: Temporal stores every activity result in its history, so unmasked text must never be one. A missing Tesseract fails the document at once with `ocr_unavailable` (not retried) |
 | 3 | `classify_document` | 3 attempts, 30 s timeout | DeepSeek structured output: `doc_type`, `report_date`, `lab_name`, confidence. Below 0.6 confidence, the type is `other` |
 | 4 | `extract_structured` | 3 attempts, 90 s timeout | Per-type extractor (section 5.5). Skipped for pages whose `source_kind` is `ocr` |
 | 5 | `validate_and_flag` | none | Grounding check; flags computed by code (section 5.6) |
-| 6 | `chunk_and_embed` | 3 attempts | 500-token chunks with 50-token overlap, page-aware; BGE-large embeddings |
+| 6 | `chunk_and_embed` | 3 attempts, 30 s heartbeat | 500-token chunks (counted with the BGE tokenizer) with 50-token overlap, page-aware; BGE-large embeddings on CPU in a thread, heartbeating so a busy worker is not mistaken for a dead one. Vectors cross the activity boundary as base64 float32 |
 | 7 | `store_results` | 5 attempts | One transaction: `lab_results`, `medications`, `document_chunks`, the document's summary card, status `done` |
 
-The workflow updates `documents.status` (`pending`, `processing`, `done`, `failed`); the frontend already polls the document list. On final failure the status becomes `failed` and an error code is stored.
+The workflow updates `documents.status` (`pending`, `processing`, `done`, `failed`); the frontend already polls the document list. On final failure the status becomes `failed` and an error code is stored (`ocr_unavailable`, `document_missing`, otherwise `ingestion_failed`). `store_results` locks the document row first: a document deleted mid-run is not resurrected, and a retried store replaces earlier rows instead of duplicating them. The workflow input carries only `document_id` and `user_id`. Verified in M3: a worker killed mid-run (after 4 of 8 activities) is replaced by a new worker that runs only the remaining activities (`docs/NUMBERS.md`).
 
 ### 5.4 PII masking
 Applied before any text reaches an LLM or the index:
@@ -382,14 +381,14 @@ Applied before any text reaches an LLM or the index:
 - Labelled identifiers: "Patient Name", "Name", "UHID", "MRN", "Patient ID", "Lab No", "Referred by"
 - Address lines
 
-Age and sex are kept, because reference ranges depend on them. Masking is regex-based and unit-tested against fixtures with known PII.
+Age and sex are kept, because reference ranges depend on them. Masking is regex-based and unit-tested against fixtures with known PII. A labelled value ends at the end of the line or at a column gap (a tab or two or more spaces), because reports print two fields per line ("Patient Name: X      Age/Sex: 34 Y / Male").
 
 ### 5.5 Classification and per-type extraction
 
 | `doc_type` | Extraction schema | Stored in |
 |---|---|---|
-| `lab_report` | rows: `test_name`, `value_text`, `unit`, `ref_range_text`, `page` | `lab_results` |
-| `prescription` (text layer only) | `name_raw`, `dose`, `frequency`, `duration` | `medications`, after ingredient resolution |
+| `lab_report` | rows: `test_name`, `value_text`, `unit`, `ref_range_text`; `page` is set by code | `lab_results` |
+| `prescription` (text layer only) | `name_raw`, `dose`, `frequency`, `duration` | `medications` (`ingredients` empty; resolved at read time, see below) |
 | `discharge_summary` | `diagnoses[]`, `procedures[]`, `discharge_medications[]`, `follow_up` | `documents.extracted` (JSONB); medications also into `medications` |
 | `imaging_report` | `modality`, `body_part`, `findings`, `impression` | `documents.extracted` (JSONB) |
 | `other` | none | chunks only |
@@ -398,10 +397,17 @@ Every document also gets a summary card, for example: *"Full body checkup - Thyr
 
 Schema rule: **normalise what we query by field; use JSONB for what we only display.**
 
+How extraction runs (M3):
+- Lab reports and prescriptions are extracted **one text-layer page per model call** (at most 4 in parallel), so each row's `page` comes from code and grounding checks exactly that page. Discharge summaries and imaging reports are extracted in one call over all text-layer pages.
+- Prompts (`backend/prompts/*.md`) put the document inside one `<document>` block, neutralise any lookalike tag in the text, and say that the content is data, never instructions. Interleaved datamarking is applied where report chunks reach the chat graph (M4), not here: it would corrupt the test names the extractor must copy verbatim. Injected text still cannot invent numbers (5.6).
+- **Medications are stored with `name_raw` and empty `ingredients`; they are resolved to ingredients at read time in M4.** Spec 3.3 keeps `ingestion` from importing `knowledge`, the worker would otherwise need Neo4j, and M4 improves the resolver (short brand names), so ingest-time results would go stale.
+
 ### 5.6 Grounding check and deterministic flags
 - Every extracted `value_text`, and every number inside `ref_range_text`, must occur verbatim in the source page text after whitespace normalisation. Rows that fail are dropped and counted in the document's `extraction_stats`.
 - `value_numeric`, `ref_low` and `ref_high` are parsed by code. Range forms handled: `a - b`, `< b`, `> a`, `upto b`, and sex-specific ranges where the report prints them.
-- `flag` is computed by code: `low`, `normal`, `high`, or `unknown` when the range cannot be parsed. The model never decides abnormality.
+- `flag` is computed by code: `low`, `normal`, `high`, or `unknown` when the range cannot be parsed. The model never decides abnormality. `a - b` and `upto b` are inclusive; `< b` and `> a` are strict. Indian digit grouping (`1,50,000`) is parsed, and a number only grounds as a whole printed number (`0.9` is not grounded by `10.9`, `245000` is not grounded by `2,45,000`).
+- A range column holding only a placeholder (`-`, `NA`, `nil`) is stored as no range.
+- Medication names are grounded too: a `name_raw` that does not occur (case-insensitive) on its page is dropped and counted.
 
 ### 5.7 Index
 `document_chunks` holds `embedding vector(1024)` (HNSW, cosine) and `tsv tsvector` (a generated column using the `simple` configuration, so tokens such as "HbA1c" survive intact), plus `user_id`, `document_id`, `page` and `source_kind`. `search_my_reports` runs both searches filtered to the user, fuses them with reciprocal rank fusion (k = 60) and passes the result to the reranker. Chunks from `ocr` pages carry that marker through to the generator, whose prompt forbids quoting numbers from them. The user filter is applied inside the vector query with pgvector 0.8 iterative index scans (`SET LOCAL hnsw.iterative_scan = relaxed_order`), so a filtered HNSW search still returns k rows. The Postgres image is pinned to `pgvector/pgvector:0.8.6-pg16-trixie`.
@@ -721,6 +727,7 @@ The LangGraph lab lessons on tools and `create_agent` (`D:\agenticshi\langgraph-
 ## 19. Owner actions
 1. `DEEPSEEK_API_KEY` is in `backend/.env` (copied from the lab with the owner's go-ahead in M0). The owner has no Anthropic or OpenAI key. NCBI and BioPortal keys carry over from v1's `.env`, copied by the owner or with explicit permission, before M2. `JWT_SECRET` and `DATA_ENCRYPTION_KEY` are generated fresh.
 2. Review the curated data files in M2.
+3. Install Tesseract for OCR (M3): `winget install UB-Mannheim.TesseractOCR`, or set `TESSERACT_CMD`. Without it, scanned uploads fail with `ocr_unavailable`; text-layer PDFs are unaffected.
 
 ## 20. Resume alignment
 When M7 closes, every current claim is true, and its numbers come from `docs/NUMBERS.md`:

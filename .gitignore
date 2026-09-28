@@ -4,6 +4,11 @@
 .venv/
 __pycache__/
 *.pyc
+.pytest_cache/
+.ruff_cache/
 node_modules/
 .next/
-data/
+# Runtime data only: uploads, seed downloads (DDInter has no licence and is
+# never committed). Curated YAML under src/etheria/seed/data/ IS committed.
+/data/
+backend/data/

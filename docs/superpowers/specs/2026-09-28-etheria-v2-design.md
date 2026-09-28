@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | Date | 2026-09-28 |
-| Status | Draft - awaiting owner review |
+| Status | Approved 2026-09-28 (owner: "let's build"); M0 in progress |
 | Repo | `D:\etheria-v2` -> https://github.com/shaunmarv3/etheria-v2 |
 | Reference only, never modified | `D:\Etheria\etheria` (v1 frontend), `D:\Etheria\etheria-backend\etheria-backend` (v1 backend) |
 | Next step after approval | `writing-plans` -> staged implementation plan |
@@ -47,7 +47,7 @@ A portfolio and learning project, demoed locally or over screen-share. No real u
 |---|---|---|---|---|
 | D1 | Shape | Modular monolith: one codebase, two processes (`api`, `worker`) | Solo project; one deploy; no network hop between API and graph | Microservices; LangGraph Platform |
 | D2 | Orchestration | LangGraph 1.x: deterministic guardrail shell + bounded tool-calling retrieval agent | Guardrails are graph structure and cannot be skipped; retrieval adapts to the question | Fixed pipeline (not agentic); fully agentic (safety becomes optional) |
-| D3 | Models | Per node: DeepSeek `deepseek-chat` for structured and tool-calling nodes; Claude Haiku 4.5 for streamed generation; OpenAI `whisper-1` (STT) and `tts-1` (TTS) | DeepSeek credits; v1's own config notes Haiku follows negative constraints ("never diagnose") more reliably in long streams; DeepSeek has no audio | Single provider |
+| D3 | Models | Per node: DeepSeek `deepseek-flash` (non-thinking mode; model ID confirmed in M0) for structured and tool-calling nodes; Claude Haiku 4.5 for streamed generation; OpenAI `whisper-1` (STT) and `tts-1` (TTS) | DeepSeek credits; v1's own config notes Haiku follows negative constraints ("never diagnose") more reliably in long streams; DeepSeek has no audio; `deepseek-chat` was dropped from DeepSeek's model list by 2026-09 | Single provider |
 | D4 | Ingestion runtime | Temporal workflow with per-activity retry policies; Temporal CLI dev server | A durable multi-step background job that survives restarts | LangGraph background graph; FastAPI `BackgroundTasks` |
 | D5 | Upload semantics | Classify, then extract per type. Structured numbers only from text-layer PDFs. The LLM parses, code judges. Grounding check on every number | Reliability and safety | Text-only RAG; vision-model extraction |
 | D6 | Knowledge data | DDInter 2.0 public CSVs + Indian Medicine Dataset (MIT) + curated India-common conditions + a critical-interaction safety net | Free, fast, India-aware | Curated-only small graph; UMLS bulk load |
@@ -106,12 +106,12 @@ etheria-v2/
         nodes/             # load_context, input_guard, summarize, understand, triage,
                            # rerank_evidence, generate, clinical_structuring, canned_reply, finalize
         agent/             # retrieval agent factory, tools/, prompts
-      retrieval/           # hybrid search, RRF, reranker, evidence pack, citations
+      retrieval/           # embedding (BGE, query cache), hybrid search, RRF, reranker, evidence pack, citations
       knowledge/           # neo4j client, cypher queries, medicine resolver, interaction service
       medical_apis/        # ported from v1: base (cache-aside + rate limit), pubmed, icd,
                            # bioportal, rxnav_normalize, medlineplus
       ingestion/           # parse, ocr, pii_mask, classify, extractors/, grounding,
-                           # chunking, embedding, workflow.py, activities.py, worker.py
+                           # chunking, workflow.py, activities.py, worker.py (embeds via retrieval.embedding)
       safety/              # red_flags, stream_guard, disclaimers, emergency, audit
       voice/               # stt, tts
       seed/                # manifest, downloaders, loaders, verify; data/*.yaml (curated)
@@ -275,7 +275,7 @@ Payload shapes match `frontend/src/lib/types.ts` exactly: `Symptom`, `Differenti
 `agent_trace` is built from the real run: one entry per executed node (name, role, output summary, tools called, detail). `sources` counts evidence per source, `routing_flags` records which tools the agent chose, and `cache_hit` records whether any cached API response was used.
 
 ### 4.8 Persistence, memory and regenerate
-- **System of record:** the `messages` table. Every user and assistant message, with the assistant's metadata (triage, symptoms, differential, citations, follow-ups, trace, audit).
+- **System of record:** the `messages` table. Every user and assistant message, with the assistant's metadata (triage, symptoms, differential, citations, follow-ups, trace, audit). The chat service inserts the user's message row in its own transaction before the graph runs, so a crash mid-turn never loses what the user typed; `finalize` inserts the assistant row.
 - **Execution state:** `AsyncPostgresSaver` (`langgraph-checkpoint-postgres`), `thread_id = conversation_id`, `durability="exit"`: one checkpoint per turn, not one per node.
 - **Short-term memory:** the message window plus the rolling summary (`summarize`, section 4.3).
 - **Regenerate** (`POST /chat/regenerate`): find the checkpoint that ended the previous turn with `aget_state_history`, run the same user message from it (a fork), mark the old assistant message `superseded_at`, and insert the new one. If that checkpoint no longer exists (the first turn, or a pruned thread), delete the thread's checkpoints and rebuild its state from `messages`. Both paths are tested.
@@ -286,7 +286,7 @@ Payload shapes match `frontend/src/lib/types.ts` exactly: `Symptom`, `Differenti
 
 | Role | Model |
 |---|---|
-| `understand`, `summarize`, `triage`, `clinical_structuring`, retrieval agent, audit, document classification and extraction | `deepseek-chat` via `langchain-deepseek` |
+| `understand`, `summarize`, `triage`, `clinical_structuring`, retrieval agent, audit, document classification and extraction | `deepseek-flash` via `langchain-deepseek`, thinking disabled (`extra_body={"thinking": {"type": "disabled"}}`) |
 | `generate` | `claude-haiku-4-5-20251001` via `langchain-anthropic` |
 | Speech-to-text / text-to-speech | OpenAI `whisper-1` / `tts-1` |
 
@@ -352,7 +352,7 @@ Schema rule: **normalise what we query by field; use JSONB for what we only disp
 - `flag` is computed by code: `low`, `normal`, `high`, or `unknown` when the range cannot be parsed. The model never decides abnormality.
 
 ### 5.7 Index
-`document_chunks` holds `embedding vector(1024)` (HNSW, cosine) and `tsv tsvector` (a generated column using the `simple` configuration, so tokens such as "HbA1c" survive intact), plus `user_id`, `document_id`, `page` and `source_kind`. `search_my_reports` runs both searches filtered to the user, fuses them with reciprocal rank fusion (k = 60) and passes the result to the reranker. Chunks from `ocr` pages carry that marker through to the generator, whose prompt forbids quoting numbers from them.
+`document_chunks` holds `embedding vector(1024)` (HNSW, cosine) and `tsv tsvector` (a generated column using the `simple` configuration, so tokens such as "HbA1c" survive intact), plus `user_id`, `document_id`, `page` and `source_kind`. `search_my_reports` runs both searches filtered to the user, fuses them with reciprocal rank fusion (k = 60) and passes the result to the reranker. Chunks from `ocr` pages carry that marker through to the generator, whose prompt forbids quoting numbers from them. The user filter is applied inside the vector query with pgvector 0.8 iterative index scans (`SET LOCAL hnsw.iterative_scan = relaxed_order`), so a filtered HNSW search still returns k rows. The Postgres image is pinned to `pgvector/pgvector:0.8.6-pg16-trixie`.
 
 ## 6. Knowledge layer
 

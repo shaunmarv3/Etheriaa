@@ -3,7 +3,7 @@
 | | |
 |---|---|
 | Date | 2026-09-28 |
-| Status | Approved 2026-09-28 (owner: "let's build"); M0 in progress |
+| Status | Approved 2026-09-28 (owner: "let's build"); M0 done (`docs/spikes/m0-results.md`) |
 | Repo | `D:\etheria-v2` -> https://github.com/shaunmarv3/etheria-v2 |
 | Reference only, never modified | `D:\Etheria\etheria` (v1 frontend), `D:\Etheria\etheria-backend\etheria-backend` (v1 backend) |
 | Next step after approval | `writing-plans` -> staged implementation plan |
@@ -47,7 +47,7 @@ A portfolio and learning project, demoed locally or over screen-share. No real u
 |---|---|---|---|---|
 | D1 | Shape | Modular monolith: one codebase, two processes (`api`, `worker`) | Solo project; one deploy; no network hop between API and graph | Microservices; LangGraph Platform |
 | D2 | Orchestration | LangGraph 1.x: deterministic guardrail shell + bounded tool-calling retrieval agent | Guardrails are graph structure and cannot be skipped; retrieval adapts to the question | Fixed pipeline (not agentic); fully agentic (safety becomes optional) |
-| D3 | Models | Per node: DeepSeek `deepseek-flash` (non-thinking mode; model ID confirmed in M0) for structured and tool-calling nodes; Claude Haiku 4.5 for streamed generation; OpenAI `whisper-1` (STT) and `tts-1` (TTS) | DeepSeek credits; v1's own config notes Haiku follows negative constraints ("never diagnose") more reliably in long streams; DeepSeek has no audio; `deepseek-chat` was dropped from DeepSeek's model list by 2026-09 | Single provider |
+| D3 | Models | Per node: DeepSeek `deepseek-flash` (non-thinking mode; model ID confirmed in M0) for structured, tool-calling and streamed generation nodes; `deepseek-v4-pro` for the post-hoc audit; voice provider decided at M5 start (section 12) | The owner holds only a DeepSeek key (changed after M0; Claude Haiku 4.5 was the original generator). M0 measured `deepseek-flash`: 10/10 structured output, 5/5 tool choice, stream time to first token p50 0.81 s. Negative-constraint adherence rests on `StreamGuard` and the graph eval; `deepseek-chat` was dropped from DeepSeek's model list by 2026-09 | Haiku for generation (no key); OpenAI audio (no key) |
 | D4 | Ingestion runtime | Temporal workflow with per-activity retry policies; Temporal CLI dev server | A durable multi-step background job that survives restarts | LangGraph background graph; FastAPI `BackgroundTasks` |
 | D5 | Upload semantics | Classify, then extract per type. Structured numbers only from text-layer PDFs. The LLM parses, code judges. Grounding check on every number | Reliability and safety | Text-only RAG; vision-model extraction |
 | D6 | Knowledge data | DDInter 2.0 public CSVs + Indian Medicine Dataset (MIT) + curated India-common conditions + a critical-interaction safety net | Free, fast, India-aware | Curated-only small graph; UMLS bulk load |
@@ -84,7 +84,7 @@ worker process  (uv run etheria worker)
 Docker (infra only): postgres (pgvector/pgvector:pg16) | neo4j (5-community)
                      redis (7-alpine) | temporal (CLI dev server, SQLite, UI on :8233)
 
-External: DeepSeek, Anthropic, OpenAI (audio only), NCBI E-utilities,
+External: DeepSeek, NCBI E-utilities,
           NLM Clinical Tables, BioPortal, RxNav (normalisation only), MedlinePlus
 ```
 
@@ -188,7 +188,7 @@ class ChatState(TypedDict):
 | `retrieval_agent` | subgraph | DeepSeek | Bounded tool-calling agent (section 4.5). Produces `evidence` and `interaction_findings` | 25 s node timeout; continue with whatever was collected plus the lab snapshot |
 | `triage` | rules + structured output | DeepSeek | RED / YELLOW / GREEN with reasons. Rules can only raise the level | Default **YELLOW**: fail toward caution, never GREEN |
 | `rerank_evidence` | code | cross-encoder (local) | Join point. Dedupe, rerank, cap at a 6,000-token budget, assign citation numbers | Fall back to retrieval order |
-| `generate` | streamed | Claude Haiku 4.5 | The answer, conditioned on triage, lab snapshot, evidence with `[n]` markers and interaction findings | Retry once before the first token; after it, `error` event and the partial answer is marked incomplete |
+| `generate` | streamed | DeepSeek | The answer, conditioned on triage, lab snapshot, evidence with `[n]` markers and interaction findings | Retry once before the first token; after it, `error` event and the partial answer is marked incomplete |
 | `clinical_structuring` | structured output | DeepSeek | Differential (symptom intents only) and 2-4 follow-up questions; runs in parallel with `generate` | Empty lists |
 | `canned_reply` | code | - | Fixed replies: off-topic, upload help, blocked input | - |
 | `finalize` | code | - | Join point. Final deterministic pass, disclaimer, RED header check; persist the assistant message and metadata; start the non-blocking audit; build `agent_trace`; empty `turn` | Persistence failure: `error` event |
@@ -242,7 +242,7 @@ Built with `langchain.agents.create_agent` (DeepSeek). It returns a compiled gra
 3. Claims that a combination is safe, or has no interaction, are replaced with the not-found wording.
 4. Non-Indian emergency numbers (911, 999) are rewritten to 112.
 
-**After.** `finalize` appends the disclaimer, re-checks the RED header, and starts an LLM audit (DeepSeek, a different vendor from the generator) that grades the reply against the product rules. The result is stored on the message and aggregated by the eval report. The audit is non-blocking by design: the answer has already streamed, so its job is measurement. The blocking controls are the deterministic ones.
+**After.** `finalize` appends the disclaimer, re-checks the RED header, and starts an LLM audit (`deepseek-v4-pro`, a larger model than the `deepseek-flash` generator; same vendor, because the owner holds one key) that grades the reply against the product rules. The result is stored on the message and aggregated by the eval report. The audit is non-blocking by design: the answer has already streamed, so its job is measurement. The blocking controls are the deterministic ones.
 
 *Known limitation:* the stream rules are pattern-based. The eval suite measures what gets through.
 
@@ -279,7 +279,8 @@ Payload shapes match `frontend/src/lib/types.ts` exactly: `Symptom`, `Differenti
 - **Execution state:** `AsyncPostgresSaver` (`langgraph-checkpoint-postgres`), `thread_id = conversation_id`, `durability="exit"`: one checkpoint per turn, not one per node.
 - **Short-term memory:** the message window plus the rolling summary (`summarize`, section 4.3).
 - **Regenerate** (`POST /chat/regenerate`): find the checkpoint that ended the previous turn with `aget_state_history`, run the same user message from it (a fork), mark the old assistant message `superseded_at`, and insert the new one. If that checkpoint no longer exists (the first turn, or a pruned thread), delete the thread's checkpoints and rebuild its state from `messages`. Both paths are tested.
-- **Pruning** (daily Temporal schedule): `aprune(thread_ids, strategy="keep_latest")` for threads idle more than 7 days; `strategy="delete"` for deleted conversations. v2 uses no `DeltaChannel`, so the documented `keep_latest` caveat does not apply.
+- **Pruning** (daily Temporal schedule): `adelete_thread` for threads idle more than 7 days and for deleted conversations. `langgraph-checkpoint-postgres` 3.1.x does not implement `aprune` (verified in M0: `NotImplementedError`), so there is no keep-latest mode; a pruned thread is rebuilt from `messages` on its next turn, the same fallback regenerate uses.
+- **Regenerate fork point** (verified in M0 under `durability="exit"`): the newest snapshot in `aget_state_history` whose message window holds N-1 user messages and whose `next` is empty.
 
 ### 4.9 Model registry
 `llm/registry.py` is the only place that maps a node to a model. Each entry holds provider, model ID, temperature, timeout and max tokens.
@@ -287,8 +288,9 @@ Payload shapes match `frontend/src/lib/types.ts` exactly: `Symptom`, `Differenti
 | Role | Model |
 |---|---|
 | `understand`, `summarize`, `triage`, `clinical_structuring`, retrieval agent, audit, document classification and extraction | `deepseek-flash` via `langchain-deepseek`, thinking disabled (`extra_body={"thinking": {"type": "disabled"}}`) |
-| `generate` | `claude-haiku-4-5-20251001` via `langchain-anthropic` |
-| Speech-to-text / text-to-speech | OpenAI `whisper-1` / `tts-1` |
+| `generate` | `deepseek-flash` via `langchain-deepseek`, streamed, thinking disabled |
+| Audit (post-hoc, non-blocking) | `deepseek-v4-pro` via `langchain-deepseek` |
+| Speech-to-text / text-to-speech | Decided at M5 start (section 12) |
 
 DeepSeek's structured-output and tool-calling reliability is verified first, in M0. If a node fails its eval, the registry lets that node alone switch model.
 
@@ -444,7 +446,7 @@ A user message row is about 2 KB; an assistant row with metadata is about 8 KB. 
 By default LangGraph writes a checkpoint after every superstep, containing the full state. With retrieved evidence held in state, that is roughly 12 checkpoints x 30-60 KB per turn. v2 applies three controls:
 1. `durability="exit"`: one checkpoint per turn.
 2. `finalize` empties the per-turn state, so a checkpoint is about the message window plus the summary (20-25 KB).
-3. Idle threads are pruned to their latest checkpoint.
+3. Idle threads are deleted from the checkpointer and rebuilt from `messages` when resumed. M0 measured a persisted checkpoint at about 553 bytes for a two-turn stand-in graph.
 
 The estimated result is a 25-40x reduction in checkpoint storage. It is measured in M7 and recorded in `docs/NUMBERS.md`.
 
@@ -523,11 +525,12 @@ Errors use one JSON shape: `{"error": {"code", "message", "request_id"}}`.
 The substantive obligations under the Rules apply from 13 May 2027. v2 is designed to them, but it is not a compliance certification.
 
 ### 11.3 Third-party processors
-DeepSeek (API servers outside India), Anthropic, OpenAI (audio) and, when enabled, LangSmith. With real users, each would need a processor agreement and a cross-border transfer review. In v2 only synthetic data reaches them. Because the model registry routes per node, any node can move to a self-hosted open-weight model without changing the graph.
+DeepSeek (API servers outside India), the M5 voice provider if it is hosted, and, when enabled, LangSmith. With real users, each would need a processor agreement and a cross-border transfer review. In v2 only synthetic data reaches them. Because the model registry routes per node, any node can move to a self-hosted open-weight model without changing the graph.
 
 ## 12. Voice
-- **Speech-to-text:** `voice_b64` on `/chat/stream` -> OpenAI `whisper-1` (25 MB limit; v1's MIME handling ported). The transcript is emitted as a `transcript` event and used as the message.
-- **Text-to-speech:** `POST /chat/tts` -> OpenAI `tts-1`; voices `alloy`, `echo`, `fable`, `onyx`, `nova`, `shimmer`; speed 0.25-4.0; text capped at 4,096 characters.
+**Open (decided at M5 start):** the owner holds no OpenAI key, and DeepSeek has no audio API. Candidates: a local CPU speech-to-text model (for example `faster-whisper`) with browser or local text-to-speech, or an OpenAI key if the owner obtains one. The API contract below stays fixed either way.
+- **Speech-to-text:** `voice_b64` on `/chat/stream` (25 MB limit; v1's MIME handling ported). The transcript is emitted as a `transcript` event and used as the message.
+- **Text-to-speech:** `POST /chat/tts` `{text, voice, speed}` -> `{audio_b64}`; speed 0.25-4.0; text capped at 4,096 characters.
 
 ## 13. Frontend (a copy of v1)
 Copied from `D:\Etheria\etheria` into `frontend/`; the original is not modified. All changes are made in the copy:
@@ -557,9 +560,9 @@ Copied from `D:\Etheria\etheria` into `frontend/`; the original is not modified.
 **Synthetic fixtures** (`tests/fixtures/reports/`) are generated by a ReportLab script, so the ground truth is known by construction: five lab reports in Indian diagnostic-chain layouts (full-body checkup, thyroid profile, lipid profile, CBC, HbA1c + glucose), one discharge summary, one digital prescription, a scanned-image copy of a lab report (to prove no numbers are extracted from images), and a report containing an injected instruction. All carry fake PII, so masking is tested too.
 
 ## 16. Local development and Docker footprint
-- `infra/docker-compose.yml`: `pgvector/pgvector:pg16`, `neo4j:5-community` (heap and page cache capped for a laptop), `redis:7-alpine`, and the Temporal CLI dev server (`server start-dev`, a SQLite file on a volume, UI on :8233). Named volumes only; no app images.
+- `infra/docker-compose.yml`: `pgvector/pgvector:0.8.6-pg16-trixie` (host port 5433), `neo4j:5.26.31-community` (heap and page cache capped for a laptop), `redis:7-alpine` (host port 6380), and the Temporal CLI dev server `temporalio/temporal:1.9.1` (`server start-dev`, a SQLite file on a volume, runs as its non-root user, UI on :8233). Host ports 5432 and 6379 are taken by the owner's native PostgreSQL 18 service and a Redis in WSL. Named volumes only; no app images.
 - The app runs natively: `uv sync`, then `uv run etheria api` and `uv run etheria worker`. torch comes from the CPU wheel index. Model weights live in the Hugging Face cache on the host.
-- Budget: images about 1.5 GB plus volumes under 1 GB after seeding. `docker system df` is recorded in `docs/NUMBERS.md` after M2.
+- Budget: images about 1.5 GB plus volumes under 1 GB after seeding. M0 measured images at 1.90 GB (Neo4j alone 986 MB) and an empty Neo4j volume at 541 MB, so M2 must trim Neo4j's transaction-log footprint to stay under 3 GB. `docker system df` is recorded in `docs/NUMBERS.md` after M2.
 - Reclaiming v1's roughly 40 GB (`docker system prune`, then compacting Docker Desktop's WSL2 disk) is a separate, destructive step, done only on the owner's explicit request.
 
 ## 17. Build order and milestones
@@ -589,7 +592,7 @@ The LangGraph lab lessons on tools and `create_agent` (`D:\agenticshi\langgraph-
 | Scope | Medium | Milestones are independently shippable; stretch items are marked as such |
 
 ## 19. Owner actions
-1. Add `DEEPSEEK_API_KEY` to `backend/.env` before M0. The other keys (OpenAI, Anthropic, NCBI, BioPortal) carry over from v1's `.env`, copied by the owner or with explicit permission. `JWT_SECRET` and `DATA_ENCRYPTION_KEY` are generated fresh.
+1. `DEEPSEEK_API_KEY` is in `backend/.env` (copied from the lab with the owner's go-ahead in M0). The owner has no Anthropic or OpenAI key. NCBI and BioPortal keys carry over from v1's `.env`, copied by the owner or with explicit permission, before M2. `JWT_SECRET` and `DATA_ENCRYPTION_KEY` are generated fresh.
 2. Review the curated data files in M2.
 
 ## 20. Resume alignment

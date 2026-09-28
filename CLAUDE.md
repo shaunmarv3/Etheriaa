@@ -10,7 +10,7 @@ Etheria v2: an India-aware AI health assistant (triage + health information, not
 
 ## Current state
 
-- Spec approved 2026-09-28. Plans live in `docs/superpowers/plans/`. M0 (spikes) is in progress; M1 follows.
+- Spec approved 2026-09-28. Plans live in `docs/superpowers/plans/`. M0 done (see `docs/spikes/m0-results.md`). M1 (foundation) is next; its plan is still to be written.
 - Workflow: plan per milestone -> execute task-by-task -> milestones M0-M7 (spec section 17).
 - Remote: `origin` = https://github.com/shaunmarv3/etheria-v2, branch `main`.
 
@@ -48,7 +48,7 @@ Invariants that span many files:
 - **The `messages` table is the system of record.** LangGraph checkpoints are only execution state: `durability="exit"`, `finalize` empties the per-turn `turn` field, and idle threads are pruned. Regenerate forks from the previous turn's checkpoint, falling back to rebuilding the thread from `messages`.
 - **Triage rules can only raise the level, and failures default to YELLOW.** For RED, code emits the emergency block before the first model token. `StreamGuard` filters generated sentences deterministically. The LLM audit runs afterwards and is non-blocking; it is for measurement.
 - **Caching covers public layers only** (medical API responses, query embeddings, knowledge-graph lookups). Never cache answers or anything user-scoped.
-- **`llm/registry.py` is the only place that maps nodes to models:** `deepseek-flash` (thinking disabled) for structured and tool nodes, `claude-haiku-4-5-20251001` for streamed generation, OpenAI `whisper-1` / `tts-1` for audio.
+- **`llm/registry.py` is the only place that maps nodes to models:** `deepseek-flash` (thinking disabled) for structured, tool and streamed generation nodes, `deepseek-v4-pro` for the post-hoc audit. The owner has only a DeepSeek key; the voice provider is decided at M5 start.
 
 **Ingestion** (spec 5). A Temporal workflow runs parse -> PII mask (Aadhaar, Indian phone numbers) -> classify -> per-type extraction -> validate -> chunk/embed -> store. The LLM parses and code judges: every extracted number must appear verbatim in the source text (grounding check), and the abnormal flags are computed by code. Rule: normalise into tables what we query by field; store in JSONB what we only display.
 
@@ -63,7 +63,9 @@ LangChain 1.4.0 / LangGraph 1.2.11: do not write 0.x-era code.
 - Agent bounds: `ModelCallLimitMiddleware(run_limit=..., exit_behavior="end")`, `ToolCallLimitMiddleware(run_limit=...)`.
 - Join parallel branches with a waiting edge, `add_edge(["a", "b"], "join")`. It runs once, after all listed branches finish.
 - `invoke`/`astream` accept `context=` and `durability="sync"|"async"|"exit"`. `add_node` accepts `retry_policy`, `timeout` and `defer`.
-- Checkpointer: `langgraph-checkpoint-postgres` (`AsyncPostgresSaver`), with `aprune(thread_ids, strategy="keep_latest"|"delete")` and `adelete_thread`.
+- Checkpointer: `langgraph-checkpoint-postgres` 3.1.x (`AsyncPostgresSaver`) implements `adelete_thread` but NOT `aprune` (raises `NotImplementedError`, verified in M0). Pruning = delete the thread + rebuild from `messages`.
+- `ToolCallLimitMiddleware` defaults to `exit_behavior="continue"`; `ModelCallLimitMiddleware` defaults to `"end"`.
+- DeepSeek: `ChatDeepSeek(model="deepseek-flash", extra_body={"thinking": {"type": "disabled"}})`; thinking is on by default. `with_structured_output(..., method="function_calling")` scored 10/10 in M0.
 - Custom stream events: `langgraph.config.get_stream_writer()`. Test fakes: `GenericFakeChatModel`.
 - NLM's RxNav drug-interaction API was retired on 2024-01-02. Use RxNav for name normalisation only; interactions come from DDInter.
 
@@ -72,5 +74,6 @@ LangChain 1.4.0 / LangGraph 1.2.11: do not write 0.x-era code.
 - Windows 11, Git Bash plus PowerShell. The console is cp1252: `print()` of non-ASCII characters (such as box-drawing) crashes, so keep script output ASCII.
 - A very long Bash heredoc fails with `ENAMETOOLONG`; write large files with the Write tool.
 - psycopg async cannot run on Windows' default ProactorEventLoop. Entry points use `asyncio.run(..., loop_factory=asyncio.SelectorEventLoop)`; pytest uses the selector policy (M1 conftest).
+- Infra host ports: Postgres 5433, Redis 6380 (5432 / 6379 are taken by the owner's native PostgreSQL 18 service and a WSL Redis). Neo4j 7474/7687, Temporal 7233, UI 8233.
 - Runtime data (uploads, seed downloads) lives in `backend/data/`, which is gitignored. Curated YAML in `src/etheria/seed/data/` is committed.
 - The owner is learning LangGraph through this build (lab: `D:\agenticshi\langgraph-lab`). When implementing graph pieces, briefly name the LangGraph concept being used.

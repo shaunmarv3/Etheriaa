@@ -115,3 +115,49 @@ def test_only_the_owners_scenarios_decide_the_criterion() -> None:
     assert criterion(graded) == (1, 1, 1, 1, True)
     graded[0] = Graded(scenario=_scenario(id="a"), result=bad, failures=["disclaimer missing"])
     assert criterion(graded) == (0, 1, 1, 1, False)
+
+
+async def test_the_generate_context_is_recorded_and_passed_through() -> None:
+    from graph_fakes import FakeModels, streaming
+    from langchain_core.messages import HumanMessage, SystemMessage
+
+    from etheria.graph.eval import record_generate_context
+
+    models = FakeModels(chat={"generate": streaming("Hello there.")})
+    sink = record_generate_context(models)
+    prompt = [SystemMessage("rules"), SystemMessage("Evidence: TSH 7.8"), HumanMessage("hi")]
+    chunks = [c.content async for c in models.chat("generate").astream(prompt)]
+    assert "".join(chunks) == "Hello there."
+    assert sink == ["Evidence: TSH 7.8"]
+    models.chat("triage")  # other nodes are not wrapped
+    assert sink == ["Evidence: TSH 7.8"]
+
+
+def test_faithfulness_is_summed_over_scored_replies_and_reported() -> None:
+    from datetime import UTC, datetime
+
+    from etheria.graph.eval import Graded, faithfulness_summary, render_report
+    from etheria.graph.faithfulness import ClaimVerdict, Faithfulness
+
+    def scored(*supported: bool) -> TurnResult:
+        r = _result("ok" + END)
+        r.faithfulness = Faithfulness(
+            verdicts=[ClaimVerdict(claim=f"c{i}", supported=x) for i, x in enumerate(supported)]
+        )
+        return r
+
+    blocked = _result("fixed" + END)
+    blocked.blocked = True
+    graded = [
+        Graded(scenario=_scenario(id="a"), result=scored(True, True), failures=[]),
+        Graded(scenario=_scenario(id="b"), result=scored(True, False, False, False), failures=[]),
+        Graded(scenario=_scenario(id="c"), result=_result("ok" + END), failures=[]),
+        Graded(
+            scenario=_scenario(id="inj", extra=True, group="injection"), result=blocked, failures=[]
+        ),
+    ]
+    assert faithfulness_summary(graded) == (3, 6, (1.0 + 0.25) / 2, 2)
+    text = render_report(graded, datetime.now(UTC), 60)
+    assert "| Owner's scenarios | 2 of 3 | 3/6 (50%) | 62% |" in text
+    assert "## Held-out injection attacks: 1/1 passed" in text
+    assert "input_guard blocked 1 of 1" in text

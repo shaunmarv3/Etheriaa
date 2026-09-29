@@ -51,3 +51,15 @@ def test_the_owners_yaml_quirks_load_as_written() -> None:
         "lists pregnancy headache red flags (pre-eclampsia signs: severe headache, "
         "blurred vision, swelling)" in pregnant.must
     )
+
+
+def test_injection_attacks_are_held_out_safety_scenarios() -> None:
+    from etheria.graph.eval import load_injection
+
+    owner, extra = load_all()
+    attacks = load_injection()
+    assert len(attacks.scenarios) == 15
+    assert all(s.extra and s.group == "injection" and s.kind == "safety" for s in attacks.scenarios)
+    assert all(s.must_not for s in attacks.scenarios)
+    ids = [s.id for suite in (owner, extra, attacks) for s in suite.scenarios]
+    assert len(set(ids)) == len(ids)

@@ -4,7 +4,12 @@ models, grades each reply, measures latency, and writes docs/evals/graph.md.
 
 graph_scenarios.yaml is the owner's set, kept verbatim: it alone decides the
 pass/fail criterion. graph_scenarios_extra.yaml holds scenarios the assistant
-added; they run too but are reported separately and never count toward it.
+added, and graph_scenarios_injection.yaml held-out prompt-injection attacks
+(M7); they run too but are reported separately and never count toward it.
+
+Faithfulness (M7, graph/faithfulness.py) is measured on every generated reply
+against the exact context `generate` was given, captured by wrapping the
+generate model for the run. It is reported, not graded.
 
 Grading (plan Decision 13): code first (triage floor, tools, forbidden phrases,
 the StreamGuard rules over the final reply, the disclaimer, RED block first),
@@ -33,6 +38,7 @@ from sqlalchemy import text
 from etheria.core.settings import BACKEND_DIR, Settings
 from etheria.db.session import Database
 from etheria.graph.audit import grade
+from etheria.graph.faithfulness import Faithfulness, faithfulness
 from etheria.graph.service import ChatService
 from etheria.llm.registry import MODEL_FOR_NODE
 from etheria.safety.stream_guard import StreamGuard
@@ -49,6 +55,7 @@ log = structlog.get_logger("etheria.eval")
 
 SCENARIOS_FILE = BACKEND_DIR / "tests" / "evals" / "graph_scenarios.yaml"
 EXTRA_FILE = SCENARIOS_FILE.with_name("graph_scenarios_extra.yaml")
+INJECTION_FILE = SCENARIOS_FILE.with_name("graph_scenarios_injection.yaml")
 REPORT_FILE = BACKEND_DIR.parent / "docs" / "evals" / "graph.md"
 REPLIES_FILE = REPORT_FILE.with_name("graph-replies.md")
 Level = Literal["GREEN", "YELLOW", "RED"]
@@ -90,7 +97,8 @@ class Scenario(BaseModel):
     must: list[str]
     must_not: list[str] = []
     history: list[str] = []
-    extra: bool = False  # from graph_scenarios_extra.yaml: reported apart from the criterion
+    extra: bool = False  # not the owner's: reported apart from the criterion
+    group: Literal["", "injection"] = ""  # "injection": graph_scenarios_injection.yaml
 
     @field_validator("must", "must_not", mode="before")
     @classmethod
@@ -120,6 +128,9 @@ class TurnResult(BaseModel):
     total_s: float
     error: str | None
     follow_ups: list[str] = []  # shown as chips next to the reply in the app
+    blocked: bool = False  # input_guard answered with the canned reply
+    context: str | None = None  # what `generate` was given (None: no generated reply)
+    faithfulness: Faithfulness | None = None
 
     def as_seen(self) -> str:
         """What the user sees: the reply plus the follow-up questions shown with it."""
@@ -154,6 +165,13 @@ def load_all() -> tuple[Suite, Suite]:
     return load_suite(), extra
 
 
+def load_injection() -> Suite:
+    suite = load_suite(INJECTION_FILE)
+    for s in suite.scenarios:
+        s.extra, s.group = True, "injection"
+    return suite
+
+
 def percentile(values: list[float], p: float) -> float | None:
     if not values:
         return None
@@ -164,10 +182,16 @@ def percentile(values: list[float], p: float) -> float | None:
 # ---- grading ----
 
 
-def _rule_hits(reply: str) -> list[str]:
+def _body(reply: str) -> str:
+    """The reply without the disclaimer and the fixed safety wording."""
     body = reply.removesuffix("\n\n_" + DISCLAIMER + "_")
     for fixed in _FIXED:
         body = body.replace(fixed, " ")
+    return body
+
+
+def _rule_hits(reply: str) -> list[str]:
+    body = _body(reply)
     guard = StreamGuard(max_chars=100_000, max_wait_s=float("inf"))
     guard.feed(body)
     guard.flush()
@@ -198,6 +222,31 @@ def expectations(s: Scenario) -> list[str]:
 
 
 # ---- running ----
+
+
+class _RecordingModel:
+    """Passes `generate`'s stream through and keeps the context block it was given
+    (the second system message, graph/nodes/generate.py)."""
+
+    def __init__(self, model, sink: list[str]) -> None:
+        self._model, self._sink = model, sink
+
+    def astream(self, prompt, *args, **kwargs):
+        self._sink.append(str(prompt[1].content))
+        return self._model.astream(prompt, *args, **kwargs)
+
+
+def record_generate_context(models) -> list[str]:
+    """Wrap the factory's generate model for this run; returns the list it fills."""
+    sink: list[str] = []
+    chat = models.chat
+
+    def wrapped(node):
+        model = chat(node)
+        return _RecordingModel(model, sink) if node == "generate" else model
+
+    models.chat = wrapped
+    return sink
 
 
 def _decimal(v: str) -> Decimal | None:
@@ -296,7 +345,11 @@ async def _seed_user(owner: Database, profile: Profile, embedder) -> uuid.UUID:
 
 
 async def _turn(
-    service: ChatService, user_id: uuid.UUID, message: str, session: uuid.UUID | None
+    service: ChatService,
+    user_id: uuid.UUID,
+    message: str,
+    session: uuid.UUID | None,
+    contexts: list[str] | None = None,
 ) -> tuple[TurnResult, uuid.UUID]:
     started = time.perf_counter()
     first_s = None
@@ -305,6 +358,8 @@ async def _turn(
     meta: dict | None = None
     error = None
     turn = await service.open_turn(user_id, message, session, f"eval-{uuid.uuid4().hex[:8]}")
+    if contexts is not None:
+        contexts.clear()
     async for event in service.events(turn):
         if event["type"] == "token":
             if first_s is None:
@@ -321,6 +376,8 @@ async def _turn(
         first_token=first_token,
         triage_level=meta["triage_level"] if meta else None,
         tools=[k for k, v in flags.items() if v and k not in ("emergency", "blocked")],
+        blocked=bool(flags.get("blocked")),
+        context=contexts[-1] if contexts else None,
         evidence=[],
         first_token_s=first_s,
         total_s=time.perf_counter() - started,
@@ -346,14 +403,19 @@ async def _evidence_for(db: Database, user_id: uuid.UUID, conversation: uuid.UUI
 
 
 async def run_scenario(
-    stack, owner: Database, db: Database, suite: Suite, s: Scenario
+    stack,
+    owner: Database,
+    db: Database,
+    suite: Suite,
+    s: Scenario,
+    contexts: list[str] | None = None,
 ) -> tuple[Graded, uuid.UUID, uuid.UUID]:
     service: ChatService = stack.service
     user_id = await _seed_user(owner, suite.profiles[s.profile], stack.embedder)
     session = None
     for earlier in s.history:
         _, session = await _turn(service, user_id, earlier, session)
-    result, session = await _turn(service, user_id, s.message, session)
+    result, session = await _turn(service, user_id, s.message, session, contexts)
     failures = code_checks(s, result)
     notes = ""
     if not result.error:
@@ -376,11 +438,27 @@ async def run_scenario(
             notes = verdict.notes
         except Exception as e:
             failures.append(f"grader failed: {type(e).__name__}")
+        if result.context is not None:
+            try:
+                result.faithfulness = await faithfulness(
+                    stack.models, s.message, _body(result.reply), result.context
+                )
+            except Exception as e:
+                log.warning("faithfulness_failed", scenario=s.id, error=type(e).__name__)
     return Graded(scenario=s, result=result, failures=failures, notes=notes), user_id, session
 
 
 def _cell(text_: str) -> str:
     return re.sub(r"\s+", " ", text_.replace("|", "/")).strip()
+
+
+def _faith(g: Graded) -> str:
+    f = g.result.faithfulness
+    if f is None:
+        return "-"
+    if f.score is None:
+        return "no claims"
+    return f"{sum(v.supported for v in f.verdicts)}/{len(f.verdicts)}"
 
 
 def render_replies(graded: list[Graded]) -> str:
@@ -389,23 +467,30 @@ def render_replies(graded: list[Graded]) -> str:
         "# Graph eval replies",
         "",
         "The full reply to every scenario in the latest `uv run etheria eval --suite graph` "
-        "run, so the grading can be checked by a person. Synthetic users only.",
+        "run, so the grading can be checked by a person. Synthetic users only. Claims the "
+        "faithfulness check found unsupported by the reply's context are listed under it.",
     ]
     for g in graded:
         verdict = "pass" if g.passed else "FAIL"
-        origin = ", extra" if g.scenario.extra else ""
+        origin = f", {g.scenario.group or 'extra'}" if g.scenario.extra else ""
         lines += [
             "",
             f"## {g.scenario.id} ({g.scenario.kind}{origin}): {verdict}",
             "",
             f"> {g.scenario.message}",
             "",
-            f"Triage {g.result.triage_level or '-'}; tools: {', '.join(g.result.tools) or 'none'}.",
+            f"Triage {g.result.triage_level or '-'}; tools: {', '.join(g.result.tools) or 'none'}"
+            + ("; blocked by input_guard" if g.result.blocked else "")
+            + f"; faithfulness {_faith(g)}.",
             "",
             g.result.as_seen().strip() or "(no reply)",
         ]
         if g.failures:
             lines += ["", "Failures: " + "; ".join(g.failures)]
+        f = g.result.faithfulness
+        if f is not None and f.unsupported:
+            lines += ["", "Unsupported claims:"]
+            lines += [f"- {v.claim}" + (f" ({v.note})" if v.note else "") for v in f.unsupported]
     return "\n".join(lines) + "\n"
 
 
@@ -421,18 +506,33 @@ def criterion(graded: list[Graded]) -> tuple[int, int, int, int, bool]:
     return s_pass, len(safety), q_pass, len(quality), ok
 
 
+def faithfulness_summary(graded: list[Graded]) -> tuple[int, int, float | None, int]:
+    """(supported claims, all claims, mean per-reply score, replies scored) over
+    the replies that made at least one claim."""
+    scored = [
+        g.result.faithfulness
+        for g in graded
+        if g.result.faithfulness is not None and g.result.faithfulness.score is not None
+    ]
+    supported = sum(sum(v.supported for v in f.verdicts) for f in scored)
+    claims = sum(len(f.verdicts) for f in scored)
+    mean = sum(f.score for f in scored) / len(scored) if scored else None  # type: ignore[misc]
+    return supported, claims, mean, len(scored)
+
+
 def _rows(graded: list[Graded], fmt) -> list[str]:
     lines = [
-        "| Scenario | Kind | Triage (floor / got) | Tools | TTFT | Total | Result |",
-        "|---|---|---|---|---|---|---|",
+        "| Scenario | Kind | Triage (floor / got) | Tools | TTFT | Total | Faithful | Result |",
+        "|---|---|---|---|---|---|---|---|",
     ]
     for g in graded:
         r = g.result
         verdict = "pass" if g.passed else "FAIL: " + _cell("; ".join(g.failures))
+        tools = ", ".join(r.tools) or ("blocked" if r.blocked else "-")
         lines.append(
             f"| {g.scenario.id} | {g.scenario.kind} | {g.scenario.triage} / "
-            f"{r.triage_level or '-'} | {', '.join(r.tools) or '-'} | {fmt(r.first_token_s)} | "
-            f"{fmt(r.total_s)} | {verdict} |"
+            f"{r.triage_level or '-'} | {tools} | {fmt(r.first_token_s)} | "
+            f"{fmt(r.total_s)} | {_faith(g)} | {verdict} |"
         )
     return lines
 
@@ -441,21 +541,24 @@ def render_report(graded: list[Graded], started: datetime, seconds: float) -> st
     s_pass, s_n, q_pass, q_n, ok = criterion(graded)
     q_rate = q_pass / q_n if q_n else 1.0
     owner = [g for g in graded if not g.scenario.extra]
-    extra = [g for g in graded if g.scenario.extra]
+    extra = [g for g in graded if g.scenario.extra and not g.scenario.group]
+    injection = [g for g in graded if g.scenario.group == "injection"]
     ttft = [g.result.first_token_s for g in owner if g.result.first_token_s is not None]
     total = [g.result.total_s for g in owner]
     fmt = lambda v: f"{v:.1f} s" if v is not None else "n/a"  # noqa: E731
+    pct = lambda v: f"{v:.0%}" if v is not None else "n/a"  # noqa: E731
     lines = [
         "# Graph eval",
         "",
         f"Generated by `uv run etheria eval --suite graph` on {started:%Y-%m-%d %H:%M} UTC "
         f"({seconds / 60:.1f} min). Models: `{MODEL_FOR_NODE['generate']}` for the graph, "
-        f"`{MODEL_FOR_NODE['audit']}` for grading.",
+        f"`{MODEL_FOR_NODE['audit']}` for grading and the faithfulness check.",
         "",
         f"The criterion is scored on the owner's {len(owner)} scenarios in "
         "`backend/tests/evals/graph_scenarios.yaml`, run as written. The "
-        f"{len(extra)} scenarios in `graph_scenarios_extra.yaml` were added by the assistant; "
-        "they are listed at the end and do not count toward the criterion.",
+        f"{len(extra)} scenarios in `graph_scenarios_extra.yaml` and the {len(injection)} "
+        "held-out injection attacks in `graph_scenarios_injection.yaml` were added by the "
+        "assistant; they are listed at the end and do not count toward the criterion.",
         "",
         "| Criterion (spec 1.2), owner's scenarios | Result | Target |",
         "|---|---|---|",
@@ -471,6 +574,32 @@ def render_report(graded: list[Graded], started: datetime, seconds: float) -> st
         "Time to first token counts from the request to the first streamed text (for RED "
         "turns that is the emergency block, sent before any model call).",
         "",
+        "## Faithfulness",
+        "",
+        "The share of a reply's factual claims that the context it was generated from "
+        "supports (the RAGAS method, written in `graph/faithfulness.py`): the audit model "
+        "splits the reply into standalone claims, then checks each against exactly what "
+        "`generate` was given (the user's record and the retrieved evidence). A claim from "
+        "general medical knowledge that the context does not hold counts as unsupported. "
+        "Replies with no factual claim, and fixed replies (blocked input, off-topic), are "
+        "not scored. Measurement only, not part of any pass/fail.",
+        "",
+        "| Replies | Scored | Claims supported | Mean per reply |",
+        "|---|---|---|---|",
+    ]
+    for label, group in (
+        ("Owner's scenarios", owner),
+        ("All scenarios", graded),
+    ):
+        sup, n, mean, k = faithfulness_summary(group)
+        lines.append(
+            f"| {label} | {k} of {len(group)} | {sup}/{n} ({pct(sup / n if n else None)}) "
+            f"| {pct(mean)} |"
+        )
+    lines += [
+        "",
+        "Unsupported claims are listed per reply in `graph-replies.md`.",
+        "",
         "## The owner's scenarios",
         "",
         *_rows(owner, fmt),
@@ -483,6 +612,20 @@ def render_report(graded: list[Graded], started: datetime, seconds: float) -> st
             "",
             *_rows(extra, fmt),
         ]
+    if injection:
+        i_pass = sum(g.passed for g in injection)
+        blocked = sum(g.result.blocked for g in injection)
+        lines += [
+            "",
+            f"## Held-out injection attacks: {i_pass}/{len(injection)} passed",
+            "",
+            f"Written after the input_guard patterns were frozen. input_guard blocked "
+            f"{blocked} of {len(injection)}; the rest went through the whole graph, where "
+            "the prompts, the deterministic output rules (StreamGuard) and the read-only "
+            "tools are what hold.",
+            "",
+            *_rows(injection, fmt),
+        ]
     return "\n".join(lines) + "\n"
 
 
@@ -491,11 +634,12 @@ async def run_suite(stack, settings: Settings, db: Database, only: list[str] | N
     owner_suite, extra_suite = load_all()
     scenarios = [
         (suite, s)
-        for suite in (owner_suite, extra_suite)
+        for suite in (owner_suite, extra_suite, load_injection())
         for s in suite.scenarios
         if not only or s.id in only
     ]
     owner = Database(settings.sqlalchemy_owner_url)
+    contexts = record_generate_context(stack.models)
     if stack.warmup is not None:
         await stack.warmup  # load the local models before timing anything
     started, t0 = datetime.now(UTC), time.perf_counter()
@@ -503,10 +647,11 @@ async def run_suite(stack, settings: Settings, db: Database, only: list[str] | N
     created: list[tuple[uuid.UUID, uuid.UUID]] = []
     try:
         for i, (suite, s) in enumerate(scenarios, 1):
-            g, user_id, session = await run_scenario(stack, owner, db, suite, s)
+            g, user_id, session = await run_scenario(stack, owner, db, suite, s, contexts)
             graded.append(g)
             created.append((user_id, session))
             status = "pass" if g.passed else "FAIL " + "; ".join(g.failures)
+            status += f" [faithful {_faith(g)}]"
             print(f"[{i}/{len(scenarios)}] {s.id}: {status}".encode("ascii", "replace").decode())
     finally:
         for user_id, session in created:

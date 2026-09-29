@@ -1,0 +1,224 @@
+@import 'tailwindcss';
+
+@font-face {
+  font-family: 'ArizonaFlare';
+  src: url('/fonts/ABCArizonaFlareVariable-Trial.ttf') format('truetype');
+  font-weight: 100 900;
+  font-display: swap;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'ArizonaCondensed';
+  src: url('/fonts/ABCArizonaFlareCondensedVariable-Trial.ttf') format('truetype');
+  font-weight: 100 900;
+  font-display: swap;
+  font-style: normal;
+}
+
+:root {
+  --background: #1a2e20;
+  --foreground: #e8e4db;
+}
+
+@theme {
+  --font-flare: 'ArizonaFlare', Georgia, serif;
+  --font-condensed: 'ArizonaCondensed', Georgia, serif;
+  --font-serif: 'ArizonaCondensed', Georgia, serif;
+  --font-sans: 'ArizonaCondensed', -apple-system, sans-serif;
+
+  --color-dark-green: #1a2e20;
+  --color-medium-green: #1d3a26;
+  --color-bright-green: #44c767;
+  --color-teal-green: #1a5c4a;
+  --color-stat-green: #2e7d6b;
+  --color-cream: #e8e4db;
+  --color-off-white: #f0ede6;
+  --color-warm-white: #f5f2ec;
+  --color-dark-text: #1a1a1a;
+  --color-muted-text: #3d3d3d;
+  --color-light-text: #666666;
+}
+
+html {
+  -ms-overflow-style: none;
+  /* IE and Edge */
+  scrollbar-width: none;
+  /* Firefox */
+}
+
+html::-webkit-scrollbar {
+  display: none;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  -ms-overflow-style: none;
+  /* IE and Edge */
+  scrollbar-width: none;
+  /* Firefox */
+  font-family: var(--font-sans);
+}
+
+body::-webkit-scrollbar {
+  display: none;
+}
+/* ── Global transition defaults ─────────────────────────────────────────────── */
+
+*,
+*::before,
+*::after {
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ── Message entrance ────────────────────────────────────────────────────────── */
+
+@keyframes msg-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.message-group {
+  animation: msg-in 0.32s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+/* ── Follow-up question entrance ─────────────────────────────────────────────── */
+
+@keyframes followup-in {
+  from {
+    opacity: 0;
+    transform: translateX(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.followup-btn {
+  animation: followup-in 0.28s cubic-bezier(0.4, 0, 0.2, 1) both;
+  transition:
+    background 0.25s,
+    border-color 0.25s,
+    transform 0.2s,
+    box-shadow 0.25s !important;
+}
+
+.followup-btn:hover {
+  transform: translateX(3px);
+  box-shadow: 0 2px 10px rgba(68, 199, 103, 0.12);
+}
+
+/* ── Toolbar buttons ─────────────────────────────────────────────────────────── */
+
+.toolbar-btn {
+  transition:
+    background 0.22s,
+    color 0.22s,
+    transform 0.18s,
+    box-shadow 0.22s !important;
+}
+
+.toolbar-btn:hover {
+  transform: translateY(-1px);
+}
+
+.toolbar-btn:active {
+  transform: translateY(0) scale(0.95);
+}
+
+/* ── Agent flow panel ────────────────────────────────────────────────────────── */
+
+@keyframes panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.agent-flow-panel {
+  animation: panel-in 0.3s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+/* ── Send button pulse when active ──────────────────────────────────────────── */
+
+.send-btn-active {
+  transition:
+    background 0.25s,
+    color 0.25s,
+    box-shadow 0.25s,
+    transform 0.15s !important;
+}
+
+.send-btn-active:hover {
+  transform: scale(1.06);
+}
+
+.send-btn-active:active {
+  transform: scale(0.95);
+}
+
+/* ── Input box focus glow ────────────────────────────────────────────────────── */
+
+.chat-input-box {
+  transition:
+    box-shadow 0.3s,
+    border-color 0.3s !important;
+}
+
+.chat-input-box:focus-within {
+  box-shadow:
+    0 0 0 3px rgba(68, 199, 103, 0.12),
+    0 4px 28px rgba(0, 0, 0, 0.07) !important;
+  border-color: rgba(68, 199, 103, 0.25) !important;
+}
+
+/* ── Streaming response smoothness ─────────────────────────────────────────── */
+
+@keyframes stream-word-in {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.etheria-streaming > * {
+  animation: stream-word-in 0.2s ease-out both;
+}
+
+.etheria-streaming p:last-child::after {
+  content: '';
+  display: inline-block;
+  width: 2px;
+  height: 0.9em;
+  background: #44c767;
+  margin-left: 2px;
+  vertical-align: middle;
+  border-radius: 1px;
+  animation: stream-caret 1s ease-in-out infinite;
+}
+
+@keyframes stream-caret {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}

@@ -1,5 +1,5 @@
 """SSE / REST payloads match the v1 frontend's types.ts exactly (spec 4.7, 15).
-The key sets below are copied from D:/Etheria/etheria/src/lib/types.ts."""
+The key sets below are copied from frontend/src/lib/types.ts."""
 
 from etheria.graph import payloads
 from etheria.graph.schemas import (

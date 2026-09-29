@@ -1,5 +1,6 @@
 """`uv run etheria worker`: the Temporal worker process (spec 3.1). Loads the
-embedding model once at start, then polls the ingestion task queue."""
+embedding model once at start, then polls the ingestion task queue. The same
+worker runs the daily maintenance workflow, whose schedule it creates if missing."""
 
 import asyncio
 
@@ -16,6 +17,9 @@ from etheria.ingestion.storage import FileStore
 from etheria.ingestion.temporal import TASK_QUEUE, connect
 from etheria.ingestion.workflow import IngestDocumentWorkflow
 from etheria.llm.registry import structured_factory
+from etheria.maintenance.activities import MaintenanceActivities
+from etheria.maintenance.schedule import ensure_schedule
+from etheria.maintenance.workflow import MaintenanceWorkflow
 from etheria.retrieval.embedding import BgeEmbedder
 
 log = structlog.get_logger("etheria.worker")
@@ -35,11 +39,13 @@ async def run_worker(settings: Settings) -> None:
         tesseract_ocr(settings.tesseract_cmd),
     )
     client = await connect(settings)
+    if await ensure_schedule(client, TASK_QUEUE):
+        log.info("worker.schedule_created", schedule="maintenance-daily")
     worker = Worker(
         client,
         task_queue=TASK_QUEUE,
-        workflows=[IngestDocumentWorkflow],
-        activities=activities.all(),
+        workflows=[IngestDocumentWorkflow, MaintenanceWorkflow],
+        activities=activities.all() + MaintenanceActivities(db).all(),
     )
     log.info("worker.started", task_queue=TASK_QUEUE, temporal=settings.temporal_address)
     try:

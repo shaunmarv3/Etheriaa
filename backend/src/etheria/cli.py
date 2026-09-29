@@ -60,6 +60,23 @@ def worker() -> None:
     asyncio.run(run_worker(get_settings()), loop_factory=_loop_factory())
 
 
+@app.command()
+def maintain() -> None:
+    """Run the daily maintenance jobs once: partitions, audit retention, thread pruning."""
+    from etheria.core.settings import get_settings
+    from etheria.db.session import Database
+    from etheria.maintenance.jobs import run_all
+
+    async def main() -> None:
+        db = Database(get_settings().sqlalchemy_url)
+        try:
+            typer.echo((await run_all(db)).model_dump_json())
+        finally:
+            await db.dispose()
+
+    asyncio.run(main(), loop_factory=_loop_factory())
+
+
 @app.command(name="eval")
 def eval_(
     suite: str = typer.Option("extraction", help="Which eval: extraction (M3) or graph (M4)."),

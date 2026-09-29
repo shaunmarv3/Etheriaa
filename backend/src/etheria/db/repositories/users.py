@@ -1,9 +1,10 @@
 from uuid import UUID, uuid4
 
-from sqlalchemy import delete, select, text, update
+from sqlalchemy import delete, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from etheria.db.models import AuditLog, Conversation, Document, User
+from etheria.db.repositories import checkpoints
 
 
 async def get_by_email(session: AsyncSession, email: str) -> User | None:
@@ -33,10 +34,6 @@ async def erase(session: AsyncSession, user_id: UUID, pseudonym: str) -> list[st
     await session.execute(
         update(AuditLog).where(AuditLog.user_ref == str(user_id)).values(user_ref=pseudonym)
     )
-    if threads:  # the three tables AsyncPostgresSaver.adelete_thread clears
-        for table in ("checkpoint_writes", "checkpoint_blobs", "checkpoints"):
-            await session.execute(
-                text(f"delete from {table} where thread_id = any(:ids)"), {"ids": threads}
-            )
+    await checkpoints.delete_threads(session, threads)
     await session.execute(delete(User).where(User.id == user_id))
     return keys

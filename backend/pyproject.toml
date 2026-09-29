@@ -108,7 +108,7 @@ type = "forbidden"
 source_modules = [
     "etheria.core", "etheria.db", "etheria.auth", "etheria.cache", "etheria.llm",
     "etheria.graph", "etheria.retrieval", "etheria.knowledge", "etheria.medical_apis",
-    "etheria.ingestion", "etheria.safety", "etheria.seed",
+    "etheria.ingestion", "etheria.safety", "etheria.seed", "etheria.maintenance",
 ]
 forbidden_modules = ["etheria.api"]
 
@@ -119,7 +119,7 @@ source_modules = ["etheria.core"]
 forbidden_modules = [
     "etheria.db", "etheria.auth", "etheria.cache", "etheria.llm", "etheria.graph",
     "etheria.retrieval", "etheria.knowledge", "etheria.medical_apis", "etheria.ingestion",
-    "etheria.safety", "etheria.seed", "etheria.api", "etheria.cli",
+    "etheria.safety", "etheria.seed", "etheria.api", "etheria.cli", "etheria.maintenance",
 ]
 
 [[tool.importlinter.contracts]]
@@ -138,6 +138,15 @@ source_modules = [
     "etheria.knowledge", "etheria.retrieval", "etheria.medical_apis", "etheria.safety",
 ]
 forbidden_modules = ["etheria.graph", "etheria.ingestion"]
+
+[[tool.importlinter.contracts]]
+name = "maintenance touches only the database"
+type = "forbidden"
+source_modules = ["etheria.maintenance"]
+forbidden_modules = [
+    "etheria.graph", "etheria.ingestion", "etheria.knowledge", "etheria.retrieval",
+    "etheria.medical_apis", "etheria.llm", "etheria.auth", "etheria.seed",
+]
 
 [[tool.importlinter.contracts]]
 name = "graph imports only its allowed layers"

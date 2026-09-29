@@ -79,7 +79,9 @@ def maintain() -> None:
 
 @app.command(name="eval")
 def eval_(
-    suite: str = typer.Option("extraction", help="Which eval: extraction (M3) or graph (M4)."),
+    suite: str = typer.Option(
+        "extraction", help="Which eval: extraction (M3), graph (M4) or retrieval (M7)."
+    ),
     only: Annotated[
         list[str] | None, typer.Option(help="Run only these scenario ids (graph; no report).")
     ] = None,
@@ -89,6 +91,12 @@ def eval_(
 
     if suite == "graph":
         raise typer.Exit(asyncio.run(_graph_eval(only or []), loop_factory=_loop_factory()))
+    if suite == "retrieval":
+        from etheria.evals.retrieval import run_retrieval_eval
+
+        raise typer.Exit(
+            asyncio.run(run_retrieval_eval(get_settings()), loop_factory=_loop_factory())
+        )
     if suite != "extraction":
         typer.echo(f"unknown suite: {suite}", err=True)
         raise typer.Exit(2)

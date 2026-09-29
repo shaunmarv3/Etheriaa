@@ -8,6 +8,8 @@ should not need every word in one chunk) and ranks with ts_rank_cd. Both halves
 filter on user_id and run under RLS."""
 
 import re
+from dataclasses import dataclass
+from typing import Any
 from uuid import UUID
 
 from pydantic import BaseModel
@@ -58,14 +60,22 @@ _COLUMNS = (
 _FROM = "FROM document_chunks c JOIN documents d ON d.id = c.document_id"
 
 
-async def search_reports(
+@dataclass(frozen=True)
+class Rankings:
+    """The two ranked lists before fusion, and every row either returned."""
+
+    rows: dict[str, Any]
+    dense: list[str]
+    keyword: list[str]
+
+
+async def rankings(
     s: AsyncSession,
     user_id: UUID,
     query_vec: list[float],
     query_text: str,
-    k: int = 8,
     doc_types: list[str] | None = None,
-) -> list[ChunkHit]:
+) -> Rankings:
     type_filter = "AND d.doc_type = ANY(:types) " if doc_types else ""
     params: dict = {"u": user_id, "n": PER_LIST, "types": doc_types or []}
     # pgvector 0.8: keep scanning the HNSW graph until enough rows pass the filter.
@@ -79,7 +89,8 @@ async def search_reports(
         {**params, "v": "[" + ",".join(f"{x:.7g}" for x in query_vec) + "]"},
     )
     rows = {str(r.id): r for r in dense}
-    rankings = [list(rows)]
+    dense_ids = list(rows)
+    keyword_ids: list[str] = []
     tsq = keyword_query(query_text)
     if tsq:
         keyword = await s.execute(
@@ -91,11 +102,22 @@ async def search_reports(
             ),
             {**params, "q": tsq},
         )
-        ranking = []
         for r in keyword:
             rows.setdefault(str(r.id), r)
-            ranking.append(str(r.id))
-        rankings.append(ranking)
+            keyword_ids.append(str(r.id))
+    return Rankings(rows=rows, dense=dense_ids, keyword=keyword_ids)
+
+
+async def search_reports(
+    s: AsyncSession,
+    user_id: UUID,
+    query_vec: list[float],
+    query_text: str,
+    k: int = 8,
+    doc_types: list[str] | None = None,
+) -> list[ChunkHit]:
+    r = await rankings(s, user_id, query_vec, query_text, doc_types)
+    rows = r.rows
     return [
         ChunkHit(
             id=i,
@@ -108,5 +130,5 @@ async def search_reports(
             content=rows[i].content,
             score=score,
         )
-        for i, score in rrf_scored(rankings)[:k]
+        for i, score in rrf_scored([r.dense, r.keyword])[:k]
     ]

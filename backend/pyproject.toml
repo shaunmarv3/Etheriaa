@@ -79,6 +79,7 @@ select = ["E", "F", "I", "UP", "B", "ASYNC"]
 "src/etheria/seed/*.py" = ["ASYNC230", "ASYNC240"]
 # The extraction eval is also a one-shot batch job.
 "src/etheria/ingestion/eval.py" = ["ASYNC230", "ASYNC240"]
+"src/etheria/evals/*.py" = ["ASYNC230", "ASYNC240"]
 # The count table in verify.py is hand-written Cypher; like SQL, it reads better unwrapped.
 "src/etheria/seed/verify.py" = ["ASYNC230", "ASYNC240", "E501"]
 
@@ -109,6 +110,7 @@ source_modules = [
     "etheria.core", "etheria.db", "etheria.auth", "etheria.cache", "etheria.llm",
     "etheria.graph", "etheria.retrieval", "etheria.knowledge", "etheria.medical_apis",
     "etheria.ingestion", "etheria.safety", "etheria.seed", "etheria.maintenance",
+    "etheria.evals",
 ]
 forbidden_modules = ["etheria.api"]
 

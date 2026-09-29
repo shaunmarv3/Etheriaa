@@ -1,0 +1,48 @@
+# Retrieval eval (M7): questions over the synthetic reports in
+# tests/fixtures/reports/, written by the assistant.
+#
+# Relevance is known by construction, never judged by a model:
+#   tests: a chunk is relevant when it comes from a report whose ground truth
+#          (expected.json lab_rows) holds one of these tests AND its text
+#          contains that test name.
+#   files + phrases: a chunk is relevant when it comes from one of the files
+#          and contains one of the phrases ("" = any chunk of the file).
+# The first group names the test as the report prints it; the "lay words"
+# group asks in everyday words instead (some still share a word with the
+# report, such as "cholesterol"), which is where keyword search alone fails.
+
+queries:
+  # --- the test named as printed ---
+  - {id: ldl, query: "What is my LDL cholesterol?", tests: [LDL Cholesterol]}
+  - {id: triglycerides, query: "my triglycerides", tests: [Triglycerides]}
+  - {id: tsh, query: "Is my TSH normal?", tests: [TSH]}
+  - {id: hba1c, query: "HbA1c value", tests: [HbA1c]}
+  - {id: fasting_glucose, query: "fasting blood glucose", tests: [Fasting Blood Glucose]}
+  - {id: haemoglobin, query: "haemoglobin level", tests: [Haemoglobin]}
+  - {id: ferritin, query: "ferritin result", tests: [Ferritin]}
+  - {id: platelets, query: "platelet count", tests: [Platelet Count]}
+  - {id: creatinine, query: "creatinine", tests: [Creatinine]}
+  - {id: sgpt, query: "SGPT", tests: [SGPT (ALT)]}
+  - {id: vitamin_d, query: "vitamin D", tests: [Vitamin D (25-OH)]}
+  - {id: mcv, query: "MCV", tests: [MCV]}
+  - {id: dolo, query: "Dolo 650", files: [prescription.pdf], phrases: [Dolo 650]}
+  - {id: augmentin, query: "Augmentin", files: [discharge_summary.pdf], phrases: [Augmentin]}
+  # --- lay words ---
+  - {id: bad_cholesterol, query: "how is my bad cholesterol", tests: [LDL Cholesterol]}
+  - {id: good_cholesterol, query: "good cholesterol", tests: [HDL Cholesterol]}
+  - {id: thyroid, query: "thyroid function", tests: [TSH, "T3, Total", "T4, Total", Free T4]}
+  - {id: sugar_average, query: "average blood sugar over the last three months", tests: [HbA1c]}
+  - {id: sugar_after_food, query: "sugar level after eating", tests: [Post Prandial Blood Glucose]}
+  - {id: anaemia, query: "am I anaemic", tests: [Haemoglobin, Ferritin, Serum Iron]}
+  - {id: white_cells, query: "infection fighting white cells", tests: [Total WBC Count, Neutrophils, Lymphocytes]}
+  - {id: kidney, query: "kidney function", tests: [Creatinine, Blood Urea]}
+  - {id: liver, query: "liver enzymes", tests: [SGOT (AST), SGPT (ALT), Alkaline Phosphatase]}
+  - {id: gout, query: "gout risk", tests: [Uric Acid]}
+  - {id: sunshine_vitamin, query: "sunshine vitamin", tests: [Vitamin D (25-OH)]}
+  - {id: discharge_meds, query: "medicines I was sent home with from the hospital",
+     files: [discharge_summary.pdf], phrases: [Augmentin, Metformin, Pan 40]}
+  - {id: antibiotic, query: "which antibiotic was I given",
+     files: [prescription.pdf, discharge_summary.pdf], phrases: [Azithral, Augmentin]}
+  - {id: fever_tablet, query: "tablet for fever", files: [prescription.pdf], phrases: [Dolo 650]}
+  - {id: diabetes_medicine, query: "my diabetes medicine", files: [discharge_summary.pdf], phrases: [Metformin]}
+  - {id: hospital_stay, query: "why was I admitted to hospital", files: [discharge_summary.pdf], phrases: [""]}

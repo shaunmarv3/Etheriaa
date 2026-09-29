@@ -101,6 +101,30 @@ async def test_duplicate_upload_returns_existing(api_client, temporal: FakeTempo
     assert len(temporal.started) == 1
 
 
+async def test_concurrent_same_file_upload_returns_the_winner(
+    api_client, temporal: FakeTemporal, settings: Settings, monkeypatch
+):
+    """Two uploads of one file race past the duplicate check; the loser hits the
+    unique (user_id, sha256) index and must answer like a duplicate, not 500."""
+    from etheria.api.routers import upload as router
+
+    h = await auth(api_client)
+    first = (await post(api_client, h)).json()
+
+    real, calls = router.repo.get_by_sha, []
+
+    async def first_check_misses(*args, **kwargs):
+        calls.append(1)
+        return None if len(calls) == 1 else await real(*args, **kwargs)
+
+    monkeypatch.setattr(router.repo, "get_by_sha", first_check_misses)
+    loser = await post(api_client, h)
+    assert loser.status_code == 200, loser.text
+    assert loser.json()["document_id"] == first["document_id"]
+    assert len(stored_files(settings)) == 1
+    assert len(temporal.started) == 1
+
+
 async def test_same_file_other_user_gets_own_document(api_client, temporal: FakeTemporal):
     a = (await post(api_client, await auth(api_client))).json()
     b = (await post(api_client, await auth(api_client))).json()

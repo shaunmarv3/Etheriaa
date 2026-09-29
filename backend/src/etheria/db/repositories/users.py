@@ -15,6 +15,11 @@ async def get(session: AsyncSession, user_id: UUID) -> User | None:
     return await session.get(User, user_id)
 
 
+async def exists(session: AsyncSession, user_id: UUID) -> bool:
+    found = await session.execute(select(User.id).where(User.id == user_id))
+    return found.first() is not None
+
+
 async def create(
     session: AsyncSession, *, email: str, password_hash: str, display_name: str | None
 ) -> User:

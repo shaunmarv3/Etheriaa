@@ -144,3 +144,24 @@ async def test_delete_user_erases_everything_and_pseudonymises_the_audit_log(
 
 async def test_delete_user_requires_auth(client: httpx.AsyncClient) -> None:
     assert (await client.delete("/user")).status_code == 401
+
+
+async def test_an_erased_users_token_is_refused_everywhere(client: httpx.AsyncClient) -> None:
+    """The access token outlives erasure by up to 15 minutes; every endpoint must
+    refuse it with 401 rather than fail on the missing user row."""
+    headers, _ = await _register(client)
+    session = await _chat(client, headers)
+    assert (await client.delete("/user", headers=headers)).status_code == 204
+    calls = [
+        ("GET", "/history/", None),
+        ("GET", f"/history/{session}", None),
+        ("GET", "/upload/", None),
+        ("POST", "/chat/stream", {"message": "hello again"}),
+        ("POST", "/chat/regenerate", {"session_id": session}),
+        ("DELETE", "/user", None),
+    ]
+    for method, url, body in calls:
+        r = await client.request(method, url, json=body, headers=headers)
+        assert r.status_code == 401, (method, url, r.status_code)
+    r = await client.post("/upload/", headers=headers, files={"file": ("cbc.pdf", PDF, "x/y")})
+    assert r.status_code == 401, r.text

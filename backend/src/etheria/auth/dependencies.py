@@ -11,6 +11,7 @@ from etheria.auth.service import AuthService, ClientMeta
 from etheria.auth.tokens import InvalidToken, decode_access_token
 from etheria.cache.rate_limit import RateLimiter
 from etheria.core.errors import Forbidden, NotAuthenticated
+from etheria.db.repositories import users
 
 _bearer = HTTPBearer(auto_error=False)
 _CHALLENGE = {"WWW-Authenticate": "Bearer"}
@@ -37,13 +38,20 @@ async def current_user_id(
         raise NotAuthenticated("Sign in required", headers=_CHALLENGE)
     secret = request.app.state.settings.jwt_secret.get_secret_value()
     try:
-        return decode_access_token(credentials.credentials, secret).user_id
+        user_id = decode_access_token(credentials.credentials, secret).user_id
     except InvalidToken:
-        raise NotAuthenticated(
-            "Your session has expired, please sign in again",
-            code="token_invalid",
-            headers=_CHALLENGE,
-        ) from None
+        user_id = None
+    # An access token outlives account erasure by up to its 15 minutes: one
+    # primary-key lookup makes it fail here instead of on a missing user row.
+    if user_id is not None:
+        async with request.app.state.db.system() as s:
+            if await users.exists(s, user_id):
+                return user_id
+    raise NotAuthenticated(
+        "Your session has expired, please sign in again",
+        code="token_invalid",
+        headers=_CHALLENGE,
+    )
 
 
 def require_same_origin(request: Request) -> None:

@@ -22,6 +22,18 @@ _INJECTION = [
         r"\b(?:reveal|show|print|repeat)\s+(?:your\s+|the\s+)?system\s+prompt",
         r"\bdeveloper\s+mode\b",
         r"\bjailbreak\b",
+        # Added in M7 after an injection corpus (tests/security/test_injection_corpus.py).
+        r"\bforget\s+(?:all\s+|your\s+|the\s+|previous\s+|prior\s+)*(?:instructions|rules|prompts?)",
+        r"\bignore\s+(?:everything|anything|all)\s+(?:above|before|previous|prior)",
+        r"\b(?:override|bypass)\s+(?:your\s+|the\s+|all\s+)*(?:safety\s+)?"
+        r"(?:rules|instructions|guidelines|restrictions|filters?)",
+        r"\b(?:pretend|roleplay|role-play)\s+(?:to\s+be\s+|you\s+are\s+|as\s+)?(?:a|an|my)\s+"
+        r"(?:doctor|physician|pharmacist)",
+        r"\bnew\s+instructions\s*:",
+        r"(?:^|\n)\s*system\s*:",
+        r"<\s*/?\s*system\s*>",
+        r"\b(?:hidden|secret|original)\s+(?:instructions|prompt|rules)\b",
+        r"\bdo\s+anything\s+now\b",
     )
 ]
 

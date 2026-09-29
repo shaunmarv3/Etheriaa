@@ -8,6 +8,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, Request, Response, UploadFile
 from fastapi.responses import JSONResponse
+from sqlalchemy.exc import IntegrityError
 
 from etheria.auth.dependencies import ClientMetaDep, CurrentUserId, RateLimiterDep
 from etheria.core.errors import (
@@ -117,6 +118,15 @@ async def upload(
                 resource_type="document",
                 resource_id=str(doc.id),
             )
+    except IntegrityError:
+        # A concurrent upload of the same file won the unique (user_id, sha256)
+        # race after our duplicate check: answer as for a duplicate.
+        store.delete(storage_key)
+        async with db.for_user(user_id) as s:
+            existing = await repo.get_by_sha(s, user_id, info.sha256)
+        if existing is None:
+            raise
+        return JSONResponse(_upload_body(existing), status_code=200)
     except BaseException:
         store.delete(storage_key)
         raise

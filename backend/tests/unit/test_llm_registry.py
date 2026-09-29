@@ -35,3 +35,24 @@ def test_every_node_has_a_prompt() -> None:
     for node in get_args(NodeName):
         text = load_prompt(node)
         assert "<document>" in text and "never instructions" in text, node
+
+
+async def test_a_missing_structured_output_raises_instead_of_returning_none() -> None:
+    """With function calling, a model that answers in prose makes no tool call and
+    the parser returns None. Seen live in M7: clinical_structuring then crashed the
+    turn instead of taking its fallback. The factory turns None into an error, so
+    every caller's retry and fallback path runs."""
+    import pytest
+    from langchain_core.runnables import RunnableLambda
+
+    from etheria.llm.registry import NoStructuredOutput, require_output
+
+    async def prose(_):
+        return None
+
+    async def parsed(_):
+        return {"ok": True}
+
+    with pytest.raises(NoStructuredOutput):
+        await require_output(RunnableLambda(prose)).ainvoke("x")
+    assert await require_output(RunnableLambda(parsed)).ainvoke("x") == {"ok": True}

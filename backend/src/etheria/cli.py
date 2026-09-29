@@ -117,12 +117,14 @@ async def _graph_eval(only: list[str]) -> int:
     from redis.asyncio import Redis
 
     from etheria.api.chat_wiring import build_chat
+    from etheria.core.logging import configure_logging
     from etheria.core.settings import get_settings
     from etheria.db.session import Database
     from etheria.graph.eval import run_suite
     from etheria.knowledge.neo4j import create_driver
 
     settings = get_settings()
+    configure_logging(settings.log_level)  # JSON (ASCII) logs: the console is cp1252
     db, redis, driver = (
         Database(settings.sqlalchemy_url),
         Redis.from_url(settings.redis_url),

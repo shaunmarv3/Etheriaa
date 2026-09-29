@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from typing import Any, Literal, get_args
 
 from langchain_core.language_models import BaseChatModel
-from langchain_core.runnables import Runnable
+from langchain_core.runnables import Runnable, RunnableLambda
 from langchain_deepseek import ChatDeepSeek
 from pydantic import BaseModel
 
@@ -77,12 +77,31 @@ def chat_model(node: NodeName, settings: Settings) -> BaseChatModel:
     )
 
 
+class NoStructuredOutput(ValueError):
+    """The model answered without calling the schema's function."""
+
+
+def _required(value: Any) -> Any:
+    if value is None:
+        raise NoStructuredOutput("the model returned no structured output")
+    return value
+
+
+def require_output(runnable: Runnable[Any, Any]) -> Runnable[Any, Any]:
+    """With function calling, a model that replies in prose makes no tool call and
+    the parser returns None; raise instead, so the caller's retry and fallback run
+    (seen live in M7 in clinical_structuring)."""
+    return runnable | RunnableLambda(_required)
+
+
 def structured_factory(settings: Settings) -> StructuredFactory:
-    """`make(node, Schema)` -> a runnable returning a Schema instance
+    """`make(node, Schema)` -> a runnable returning a Schema instance, never None
     (function calling scored 10/10 in M0)."""
 
     def make(node: NodeName, schema: type[BaseModel]) -> Runnable[Any, Any]:
-        return chat_model(node, settings).with_structured_output(schema, method="function_calling")
+        return require_output(
+            chat_model(node, settings).with_structured_output(schema, method="function_calling")
+        )
 
     return make
 

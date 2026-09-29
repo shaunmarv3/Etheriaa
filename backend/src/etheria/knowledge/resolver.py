@@ -12,8 +12,16 @@ matching extent of the brand name, so a short query such as "Brufen" scores
 1.0 against "Brufen 400 Tablet" instead of 0.39 (spec 4.5, M2 gap). When the
 close candidates differ (Brufen vs Brufen MR, which adds tizanidine), the
 result stays ambiguous, but the ingredients every candidate shares are
-returned so interaction checks still cover them."""
+returned so interaction checks still cover them.
 
+`variants` says what each product behind a name contains, so the answer can
+name them (spec 4.5): for an ambiguous name, one entry per ingredient set among
+the close candidates (Brufen vs Brufen MR, which adds tizanidine); for a
+matched brand, the other products sold under the same name that contain
+something else (Telma 40 matched, but Telma H adds hydrochlorothiazide), because
+a user who types "Telma 40" may be holding a Telma H strip."""
+
+import re
 from collections.abc import Sequence
 from typing import Literal
 
@@ -29,7 +37,20 @@ MIN_LEAD = 0.1
 AMBIGUOUS = "ambiguous"
 NO_MATCH = "none"
 
+MAX_VARIANTS = 5
 Candidate = tuple[str, float, tuple[str, ...]]  # brand, similarity, ingredient set
+
+# Words that name a dosage form or release type, not a different product.
+_FORM_WORDS = frozenset(
+    "tablet tablets tab capsule capsules cap syrup suspension injection drops soft gelatin "
+    "er sr xr cr dt oral solution".split()
+)
+_TOKEN = re.compile(r"[^\w./]+")
+
+
+class BrandVariant(BaseModel):
+    brands: list[str]  # products with this ingredient set (a few, as named in the table)
+    ingredients: list[str]  # as the brand table lists them, not mapped to Drug nodes
 
 
 class Resolution(BaseModel):
@@ -40,6 +61,43 @@ class Resolution(BaseModel):
     unresolved_ingredients: list[str] = []
     candidates: list[str] = []  # the close brands, when ambiguous
     shared_ingredients: list[str] = []  # Drug names every close candidate contains
+    # ambiguous: one entry per ingredient set among the candidates; resolved brand:
+    # other products under the same name with different ingredients
+    variants: list[BrandVariant] = []
+    more_variants: int = 0  # ingredient sets left out of `variants`
+
+
+def _tokens(name: str) -> list[str]:
+    return [t for t in _TOKEN.split(normalise_name(name)) if t]
+
+
+def group_variants(cands: Sequence[tuple[str, tuple[str, ...]]]) -> list[BrandVariant]:
+    """One entry per ingredient set, in the order the sets first appear."""
+    groups: dict[tuple[str, ...], list[str]] = {}
+    for name, ingredients in cands:
+        names = groups.setdefault(ingredients, [])
+        if name not in names:
+            names.append(name)
+    return [BrandVariant(brands=names[:3], ingredients=list(s)) for s, names in groups.items()]
+
+
+def family_variants(
+    query: str, matched: tuple[str, ...], family: Sequence[tuple[str, tuple[str, ...]]]
+) -> tuple[list[BrandVariant], int]:
+    """Products under the same name with an ingredient set other than `matched`,
+    one per set, the plainest name first: fewest words that are neither in the
+    query nor a dosage form ("Telma H Tablet" before "Telma-AM H 40 Tablet")."""
+    asked = set(_tokens(query))
+
+    def extra(name: str) -> int:
+        return sum(1 for t in _tokens(name) if t not in asked and t not in _FORM_WORDS)
+
+    best: dict[tuple[str, ...], str] = {}
+    for name, ingredients in sorted(family, key=lambda f: (extra(f[0]), len(f[0]), f[0])):
+        if ingredients != matched and ingredients not in best:
+            best[ingredients] = name
+    variants = [BrandVariant(brands=[n], ingredients=list(s)) for s, n in best.items()]
+    return variants[:MAX_VARIANTS], max(0, len(variants) - MAX_VARIANTS)
 
 
 def pick_candidate(
@@ -114,6 +172,22 @@ class MedicineResolver:
             )
             return [(n, float(sim), tuple(sorted(i))) for n, sim, i in rows]
 
+    async def _family(self, brand: str) -> list[tuple[str, tuple[str, ...]]]:
+        """Every product whose name starts with the brand's first word as a whole
+        word ("Telma 40 Tablet" -> Telma H, Telma-AM, not Telmax)."""
+        word = _tokens(brand)[0] if _tokens(brand) else ""
+        if len(word) < 3:
+            return []
+        async with self._db.system() as s:
+            rows = await s.execute(
+                text(
+                    "SELECT name, ingredients FROM medicine_brands "
+                    "WHERE name ILIKE :space OR name ILIKE :dash OR lower(name) = :w LIMIT 500"
+                ),
+                {"space": f"{word} %", "dash": f"{word}-%", "w": word},
+            )
+            return [(n, tuple(sorted(i))) for n, i in rows]
+
     async def resolve(self, name: str) -> Resolution:
         q = normalise_name(name)
         if not q:
@@ -131,19 +205,25 @@ class MedicineResolver:
             close = [(n, i) for n, sim, i in cands if sim >= cands[0][1] - MIN_LEAD]
             common = set.intersection(*(set(i) for _, i in close))
             mapped = await self._canonical(sorted(common)) if common else {}
+            variants = group_variants(close)
             return Resolution(
                 query=name,
                 status="ambiguous",
                 candidates=[n for n, _ in close][:5],
                 shared_ingredients=sorted({d for d in mapped.values() if d}),
+                variants=variants[:MAX_VARIANTS],
+                more_variants=max(0, len(variants) - MAX_VARIANTS),
             )
 
         brand, ingredients = picked
         mapped = await self._canonical(ingredients) if ingredients else {}
+        variants, more = family_variants(name, ingredients, await self._family(brand))
         return Resolution(
             query=name,
             status="resolved",
             matched_brand=brand,
             ingredients=sorted({d for d in mapped.values() if d}),
             unresolved_ingredients=sorted(i for i, d in mapped.items() if d is None),
+            variants=variants,
+            more_variants=more,
         )

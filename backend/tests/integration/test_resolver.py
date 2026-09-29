@@ -58,6 +58,9 @@ async def world(owner_conn: psycopg.Connection, driver: neo4j.AsyncDriver, tag: 
                 ("Oddmed Tablet", [f"{tag}notinddinter"]),
                 ("Brufen 400 Tablet", [ibu]),
                 ("Brufen MR Tablet", [ibu, f"{tag}tizanidine"]),
+                ("Telma 40 Tablet", [f"{tag}telmisartan"]),
+                ("Telma H Tablet", [f"{tag}telmisartan", f"{tag}hydrochlorothiazide"]),
+                ("Telmax 40 Tablet", [f"{tag}telmisartan", f"{tag}amlodipine"]),
             ],
         )
     owner_conn.execute(
@@ -266,6 +269,22 @@ async def test_ambiguous_brand_keeps_the_shared_ingredient(
     assert r.status == "ambiguous"
     assert {"Brufen 400 Tablet", "Brufen MR Tablet"} <= set(r.candidates)
     assert r.shared_ingredients == [f"{world}Ibuprofen"]
+    assert sorted((v.brands, v.ingredients) for v in r.variants) == [
+        (["Brufen 400 Tablet"], [f"{world}ibuprofen"]),
+        (["Brufen MR Tablet"], [f"{world}ibuprofen", f"{world}tizanidine"]),
+    ]
+
+
+async def test_a_matched_brand_names_same_name_products_with_other_ingredients(
+    resolver: MedicineResolver, world: str
+) -> None:
+    r = await resolver.resolve("Telma 40")
+    assert (r.status, r.matched_brand) == ("resolved", "Telma 40 Tablet")
+    # Telma H adds a diuretic; Telmax is a different name, not a Telma product.
+    assert [(v.brands, v.ingredients) for v in r.variants] == [
+        (["Telma H Tablet"], sorted([f"{world}hydrochlorothiazide", f"{world}telmisartan"]))
+    ]
+    assert (await resolver.resolve("Dolo 650")).variants == []
 
 
 async def test_interactions_use_the_shared_ingredient_of_an_ambiguous_brand(

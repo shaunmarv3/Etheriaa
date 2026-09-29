@@ -61,15 +61,29 @@ def _lab_evidence(f: hr.LabFact, tool_name: str) -> Evidence:
     )
 
 
+def _variant_list(r: Resolution) -> str:
+    parts = [f"{', '.join(v.brands)} ({' + '.join(v.ingredients)})" for v in r.variants]
+    if r.more_variants:
+        parts.append(f"and {r.more_variants} more combinations")
+    return "; ".join(parts)
+
+
 def _medicine_evidence(name: str, r: Resolution, tool_name: str) -> Evidence:
     if r.status == "resolved":
         text = f"{name} contains {', '.join(r.ingredients) or 'unrecognised ingredients'}"
         if r.matched_brand:
             text += f" (brand {r.matched_brand})"
+        if r.variants:
+            text += (
+                f". Other products sold under a similar name contain different ingredients, "
+                f"so the user should check which one is on the strip: {_variant_list(r)}. "
+                f"Only the ingredients of {r.matched_brand} were checked"
+            )
     elif r.status == "ambiguous":
         shared = ", ".join(r.shared_ingredients)
-        text = f"{name} could be any of {', '.join(r.candidates)}; " + (
-            f"all of them contain {shared}, which was checked"
+        text = f"{name} could be any of several products: {_variant_list(r)}; " + (
+            f"all of them contain {shared}, which was checked; any other ingredient was not "
+            "checked, so the user should confirm which product they have"
             if shared
             else "they share no ingredient, so it could not be checked"
         )

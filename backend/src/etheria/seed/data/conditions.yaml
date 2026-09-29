@@ -352,7 +352,7 @@
   synonyms: ["dog bite", "rabies risk"]
   body_systems: [Infectious]
   india_common: true
-  symptoms: {animal_bite: 1.0}
+  symptoms: {animal_bite: 1.0, animal_scratch: 1.0}
   first_line: [rabies_prophylaxis]
   self_care: ["Wash the wound with soap and running water for 15 minutes right away", "Go to a health facility today for the rabies vaccine", "Do not apply chilli, oil or other substances to the wound"]
   red_flags: ["Any bite or scratch that broke the skin", "Bite on the head, face or hands", "Fear of water or agitation after a past bite"]

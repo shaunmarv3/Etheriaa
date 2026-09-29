@@ -175,6 +175,7 @@
 
 # --- injuries and exposures ---
 - {code: animal_bite, name: Animal bite, lay_terms: [dog bite, monkey bite, cat bite, bitten by a dog], source: https://medlineplus.gov/animalbites.html}
+- {code: animal_scratch, name: Animal scratch that broke the skin, lay_terms: [dog scratch, cat scratch, monkey scratch, scratched by a dog, animal scratch], source: https://www.who.int/news-room/fact-sheets/detail/rabies}
 - {code: snake_bite, name: Snake bite, lay_terms: [bitten by a snake, saanp ne kaata], source: https://medlineplus.gov/ency/article/000031.htm}
 - {code: heat_exposure, name: Prolonged heat exposure, lay_terms: [worked in the sun, heat wave, loo lagna], source: https://medlineplus.gov/heatillness.html}
 - {code: severe_bleeding, name: Heavy bleeding, lay_terms: [bleeding will not stop, spurting blood, uncontrolled bleeding], source: https://medlineplus.gov/bleeding.html}

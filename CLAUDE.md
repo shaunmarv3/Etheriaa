@@ -18,7 +18,7 @@ Etheria v2: an India-aware AI health assistant (triage + health information, not
 - Post-M4 (2026-09-29): the owner's 26 graph-eval scenarios are the official set (`tests/evals/graph_scenarios.yaml`, verbatim, hash-pinned by `test_eval_scenarios.py`; never edit it to make the system pass). The assistant's 6 extras live in `graph_scenarios_extra.yaml` and are reported separately (spec D26). The resolver now names what each product behind a brand contains (`Resolution.variants`).
 - Voice is dropped (spec D25): no M5.
 - M6 done 2026-09-29 (plan `docs/superpowers/plans/2026-09-29-m6-frontend.md`, spec 13, D27-D29): `frontend/` copied from v1 with Clerk replaced by `src/lib/auth.tsx`; removed features and dead code deleted; history rename, regenerate, continue-chat, document download and an Account page wired; `DELETE /user` erasure built (`api/routers/user.py`, `users.erase`). v1's fake progress UI, its 911 banner and its Clerk/Claude/HIPAA marketing copy are gone. The whole criterion 1.2.2 flow was run in Chrome against the real stack.
-- Next: M7 (hardening).
+- M7 done 2026-09-29 (plan `docs/superpowers/plans/2026-09-29-m7-hardening.md`, spec D30-D33): daily `MaintenanceWorkflow` on a Temporal Schedule (`maintenance/`, migration 0004: partitions ahead, 12-month audit retention, 7-day checkpoint pruning through bounded SECURITY DEFINER functions); security suite in `tests/security/` (forged tokens, erased-user tokens now 401, upload fuzzing, injection corpus with a held-out set); retrieval eval (`evals/retrieval.py`, no LLM) and faithfulness in the graph eval (`graph/faithfulness.py`); 15 held-out injection attacks run through the real graph (`graph_scenarios_injection.yaml`); `docs/SECURITY.md`. Every criterion in spec 1.2 checked with evidence. The project is complete; what stays open is in `docs/SECURITY.md` (known limitations) and spec section 19 (owner actions: Tesseract, the curated-YAML review).
 - Remote: `origin` = https://github.com/shaunmarv3/etheria-v2, branch `main`.
 
 ## Hard rules
@@ -43,7 +43,9 @@ uv run etheria worker         # Temporal worker: ingestion (loads BGE-large, ~25
 uv run etheria seed           # knowledge layer: 8 phases + canaries -> docs/NUMBERS.md (idempotent)
 uv run etheria seed --verify-only   # counts + canaries only; --skip-codes skips external lookups
 uv run etheria eval --suite extraction   # extraction eval, real DeepSeek (opt-in, costs cents) -> docs/evals/
-uv run etheria eval --suite graph        # graph eval: owner's 26 + 6 extras, real DeepSeek (~6 min, cents); --only <id> for one
+uv run etheria eval --suite graph        # graph eval: owner's 26 + 6 extras + 15 held-out injection attacks + faithfulness, real DeepSeek (~20 min, cents); --only <id> for one
+uv run etheria eval --suite retrieval    # retrieval eval over the fixtures: Hit@k, Recall@k, Precision@k, MRR (no LLM, ~30 s)
+uv run etheria maintain                  # the daily maintenance jobs once (the worker also schedules them daily)
 uv run etheria graph-diagram  # regenerate the Mermaid diagram in docs/ARCHITECTURE.md
 uv run pytest tests/unit/test_x.py::test_name     # single test
 uv run pytest tests/live --live                   # real external APIs + curated source URLs (opt-in)

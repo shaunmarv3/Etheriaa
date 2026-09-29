@@ -141,3 +141,80 @@ Storage for one real two-turn conversation (`pg_column_size`):
 |---|---:|
 | Cross-encoder cold load on the first request, before warm-up was added | 19 s |
 | Test suite (`uv run pytest`) | 467 passed, 8 skipped (skips: 7 live-API tests, 1 needs Tesseract) |
+
+## Hardening (M7, measured 2026-09-29)
+
+### Retrieval eval
+
+`uv run etheria eval --suite retrieval` (no LLM; full table and per-question ranks in `docs/evals/retrieval.md`). Corpus: the 8 text-layer fixtures, ingested as ingestion does (parse, PII mask, chunk, BGE-large): 10 chunks for one user. 30 questions, 16 of them in everyday words; relevance by construction from the fixture ground truth.
+
+| Ranking | Hit@1 | Hit@3 | Recall@5 | Precision@3 | MRR |
+|---|---:|---:|---:|---:|---:|
+| Dense (pgvector) | 93% | 97% | 100% | 52% | 0.96 |
+| Keyword (Postgres full text) | 83% | 83% | 83% | 43% | 0.83 |
+| Hybrid (RRF, what `search_my_reports` returns) | 90% | 97% | 100% | 52% | 0.94 |
+| Hybrid + cross-encoder rerank of the top 6 | 90% | 100% | 100% | 52% | 0.94 |
+
+On questions that name the test as printed, all four rankings score MRR 1.00. On everyday-word questions, keyword search drops to 0.69 (5 of 16 not found), dense scores 0.92 and hybrid 0.88. On this small corpus, fusing in keyword search costs dense a little; its case is exact tokens in larger record sets (spec D14), which this corpus is too small to show.
+
+### Security suite
+
+| What | Value |
+|---|---:|
+| Injection heuristics, development corpus (patterns widened until all blocked) | 20 / 20 blocked |
+| Benign messages using the same trigger words | 0 / 15 blocked |
+| Held-out attacks, written after the patterns were frozen | 2 / 15 blocked |
+| Forged access tokens refused (alg none, wrong secret, HS512, no exp, expired, non-UUID sub, unknown user, tampered) | 8 / 8 |
+| Seeded upload mutations (bit flips, truncation, splices): crashes in validation | 0 / 450 |
+| Mutated uploads through the API: 500 responses | 0 / 9 |
+| Bugs found and fixed: an erased user's token answered 200 (reads) and 500 (writes); a concurrent same-file upload answered 500; a structured model call returning no tool call crashed a chat turn | 3 |
+
+### Maintenance and storage
+
+`uv run etheria maintain` against the development database (the daily Temporal Schedule runs the same workflow):
+
+| What | Before | After |
+|---|---:|---:|
+| Checkpoint threads | 13 | 3 |
+| Checkpoint rows | 16 | 3 |
+| Checkpoint row bytes (`pg_column_size`) | 18.9 KB | 3.4 KB |
+| Channel blob bytes | 39.6 KB | 7.3 KB |
+| Pending writes | 8 | 0 |
+
+The 10 pruned threads belonged to deleted accounts and interrupted eval runs (no conversation left). About 3.5 KB of checkpoint data per live thread; at that size 10,000 threads active within 7 days would hold about 35 MB (a projection from this measurement, not a load test). Partitions: `messages` and `audit_log` exist through December 2026 (three months ahead); no `audit_log` month is older than 12 months yet, so none was dropped.
+
+### Docker footprint after seeding (`docker system df -v`, `docker ps -s`)
+
+| What | Size |
+|---|---:|
+| Images (Neo4j 986 MB, pgvector 641 MB, Temporal 218 MB, Redis 58 MB) | 1.90 GB |
+| Volumes (`etheria_pgdata` 317 MB, `etheria_neo4jdata` 32 MB, `etheria_temporaldata` 3.5 MB) | 353 MB |
+| Container writable layers (Neo4j 288 MB; the others under 21 KB) | 288 MB |
+| **Total** | **2.54 GB** (budget 3 GB) |
+
+The Neo4j layer is the image's entrypoint rewriting file ownership under `/var/lib/neo4j` (the 125 MB `lib/` is copied up) plus Neo4j Browser unpacking into `/tmp` (106 MB). It is recreated with the container and stays within budget, so it is left as is.
+
+### Graph eval, M7 run (2026-09-29)
+
+`uv run etheria eval --suite graph` (9.1 min; full table in `docs/evals/graph.md`, every reply and every unsupported claim in `graph-replies.md`):
+
+| What | Value |
+|---|---:|
+| Owner's safety scenarios | 14 / 14 |
+| Owner's quality scenarios | 12 / 12 (`chronic_headache_3_years` passed this run; it has no sourced blood-pressure advice, so earlier runs failed it and later ones may) |
+| Time to first token, p50 / p95 | 4.3 s / 7.2 s |
+| Full response, p50 / p95 | 6.6 s / 9.0 s |
+| Faithfulness, owner's scenarios: claims supported by the context `generate` saw | 237 / 272 (87%); mean per reply 86% |
+| Faithfulness, all 47 scenarios (31 replies with claims) | 281 / 330 (85%) |
+| Assistant-added extras | 6 / 6 |
+| Held-out injection attacks passed | 15 / 15 (input_guard blocked 2, `understand` routed 10 to the fixed off-topic reply, 3 reached `generate`) |
+
+The first M7 run crashed at scenario 19: `clinical_structuring` got `None` from a structured call (the model answered without calling the function). Fixed at the model factory (`llm/registry.require_output`), then the whole run above was repeated.
+
+### End to end in the browser (2026-09-30)
+
+`etheria api`, `etheria worker` and the built frontend (`next start`), driven in Chrome, logs captured for every process: register, log in, upload `lab_thyroid.pdf` (Ready within 10 s; summary "1 abnormal: high tsh"), download (authenticated GET 200, blob `lab_thyroid.pdf`), streamed chat citing TSH 6.84 (range 0.27-4.20, high) as in the fixture ground truth, regenerate, a second turn, history list, open, rename (kept after reload), continue chat, delete (conversation soft-deleted, checkpoint thread gone), delete the document, delete the account. After erasure the captured access token got 401 on `/history/`, `/upload/` and `/auth/me`, the refresh cookie 401, and the account's five audit rows read `erased:...`. Logs: 0 errors in api and worker, no 5xx, no browser console errors. Temporal: the ingestion workflow completed and the `maintenance-daily` schedule is registered.
+
+### Tests (2026-09-29)
+
+`uv run pytest`: 543 passed, 8 skipped (7 live external-API tests, 1 needs Tesseract). ruff, formatting and 6 import contracts clean; frontend `tsc` 0 errors, `eslint` 0 errors (12 warnings from v1), `next build` passes.

@@ -16,7 +16,9 @@ Etheria v2: an India-aware AI health assistant (triage + health information, not
 - M3 done (plan `docs/superpowers/plans/2026-09-28-m3-ingestion.md`): `POST/GET/DELETE /upload/` + download (`api/routers/upload.py`), encrypted `FileStore`, `IngestDocumentWorkflow` + `IngestionActivities` (`ingestion/`), `llm/registry.py` + `prompts/*.md`, BGE embeddings (`retrieval/embedding.py`), synthetic fixtures (`tests/fixtures/reports/`, regenerate with `generate.py`), extraction eval 54/54 (`docs/evals/extraction.md`). Tesseract is not installed yet (owner action; scanned uploads fail with `ocr_unavailable` until it is).
 - M4 done (plan `docs/superpowers/plans/2026-09-28-m4-reasoning-graph.md`): the chat graph in `graph/` (state + `merge_turn` reducer, shell nodes in `graph/nodes/`, `create_agent` retrieval agent + 8 user-scoped tools in `graph/agent.py` / `graph/tools.py`, builder, `ChatService` with fork-based regenerate and rebuild-from-`messages`, post-hoc audit), `safety/` (rule matcher, input guard, `StreamGuard`, drug cautions), `/chat/stream` (SSE), `/chat/regenerate`, `/history`, hybrid report search + cross-encoder rerank (`retrieval/`), checkpoint tables via migration 0003, graph eval (`docs/evals/graph.md`, replies in `graph-replies.md`; on the owner's 26: safety 14/14, quality 11/12, PASS, 2026-09-29), generated diagram in `docs/ARCHITECTURE.md`. `safety/drug_cautions.yaml` joins the YAML awaiting owner review.
 - Post-M4 (2026-09-29): the owner's 26 graph-eval scenarios are the official set (`tests/evals/graph_scenarios.yaml`, verbatim, hash-pinned by `test_eval_scenarios.py`; never edit it to make the system pass). The assistant's 6 extras live in `graph_scenarios_extra.yaml` and are reported separately (spec D26). The resolver now names what each product behind a brand contains (`Resolution.variants`).
-- Voice is dropped (spec D25): no M5. Next: M6 (frontend), then M7 (hardening).
+- Voice is dropped (spec D25): no M5.
+- M6 done 2026-09-29 (plan `docs/superpowers/plans/2026-09-29-m6-frontend.md`, spec 13, D27-D29): `frontend/` copied from v1 with Clerk replaced by `src/lib/auth.tsx`; removed features and dead code deleted; history rename, regenerate, continue-chat, document download and an Account page wired; `DELETE /user` erasure built (`api/routers/user.py`, `users.erase`). v1's fake progress UI, its 911 banner and its Clerk/Claude/HIPAA marketing copy are gone. The whole criterion 1.2.2 flow was run in Chrome against the real stack.
+- Next: M7 (hardening).
 - Remote: `origin` = https://github.com/shaunmarv3/etheria-v2, branch `main`.
 
 ## Hard rules
@@ -46,6 +48,8 @@ uv run etheria graph-diagram  # regenerate the Mermaid diagram in docs/ARCHITECT
 uv run pytest tests/unit/test_x.py::test_name     # single test
 uv run pytest tests/live --live                   # real external APIs + curated source URLs (opt-in)
 uv run ruff check . && uv run lint-imports        # lint + module-boundary contracts
+cd frontend && npm install && npm run dev          # Next.js on :3000 (needs `uv run etheria api`; .env.local from .env.example)
+cd frontend && npx tsc --noEmit && npx eslint && npx next build   # frontend checks (0 errors; the _node warnings are v1's)
 ```
 
 ## Architecture (big picture)
@@ -66,6 +70,8 @@ Invariants that span many files:
 **Knowledge layer** (spec 6). Neo4j holds curated India-common conditions and symptoms plus DDInter interactions (`INTERACTS_WITH {severity, source}`), with a curated critical-interaction safety net. Postgres holds the 253,973 Indian brand names (`medicine_brands`, trigram fuzzy match) and `drug_synonyms` (paracetamol -> acetaminophen). Brand names are a lookup, not a graph traversal. Drugs are keyed by `Drug.key` (normalised name); 22 India-common drugs DDInter lacks are curated `extra_drugs` so the class-level safety net covers them. Curated nodes and edges carry a namespace `ns` ("main"): Neo4j Community has one database, so integration tests load into their own namespace and clean up, never touching the seeded graph.
 
 **Frontend contract.** SSE event shapes and REST responses must match `frontend/src/lib/types.ts` exactly. For example, `Citation.relevanceScore` is camel-case while the `AgentTrace` keys are snake_case. Contract tests pin this. Endpoints kept, cut and never built are listed in spec section 10.
+
+**Frontend (spec 13).** The live chat is `app/dashboard/page.tsx` (+ `src/components/chat/MessageThread.tsx`). Auth: `src/lib/auth.tsx` keeps the access token in memory and refreshes single-flight (a second refresh with the same cookie counts as reuse and revokes the session); `src/lib/api.ts` retries once after a 401. `AgentFlowPanel` is keyed on the graph's node names; the triage level comes from `message.triageLevel` (`agent_trace.triage_reasoning` is prose). Nothing user-scoped goes in `localStorage`. UI text must also describe only what the code does, and emergency numbers are 112 / 108 / 14416, never 911.
 
 ## Library notes (verified against installed versions, 2026-09)
 

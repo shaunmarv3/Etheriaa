@@ -3,7 +3,7 @@
 Every number here comes from a query against the running system.
 
 <!-- seed:begin (written by `uv run etheria seed`; do not edit by hand) -->
-## Knowledge layer (measured 2026-09-28)
+## Knowledge layer (measured 2026-09-29)
 
 ### Neo4j
 
@@ -12,14 +12,14 @@ Every number here comes from a query against the running system.
 | Drug (DDInter) | 1,939 |
 | Drug (curated, not in DDInter) | 22 |
 | Condition | 122 |
-| Symptom | 153 |
+| Symptom | 154 |
 | DrugClass | 106 |
 | BodySystem | 15 |
 | INTERACTS_WITH (DDInter) | 160,235 |
 | INTERACTS_WITH (DDInter, Major) | 26,914 |
 | INTERACTS_WITH (critical safety net) | 658 |
 | Critical pairs absent from DDInter | 477 |
-| ASSOCIATED_WITH (symptom -> condition) | 622 |
+| ASSOCIATED_WITH (symptom -> condition) | 623 |
 | FIRST_LINE (condition -> class) | 197 |
 | MEMBER_OF (drug -> class) | 331 |
 | AFFECTS (condition -> body system) | 172 |
@@ -101,17 +101,31 @@ Docker after M3 (`docker system df -v`): images unchanged (1.90 GB); volumes `et
 
 ## Chat graph (M4, measured 2026-09-29)
 
-Graph eval (`uv run etheria eval --suite graph`, real `deepseek-flash`, graded by `deepseek-v4-pro`; full table in `docs/evals/graph.md`, every reply in `docs/evals/graph-replies.md`):
+Graph eval (`uv run etheria eval --suite graph`, real `deepseek-flash`, graded by `deepseek-v4-pro`; full table in `docs/evals/graph.md`, every reply in `docs/evals/graph-replies.md`). The criterion is scored on the owner's 26 scenarios (`graph_scenarios.yaml`, run exactly as written, hash-pinned by a test); the 6 scenarios the assistant added (`graph_scenarios_extra.yaml`) are reported apart (spec D26). Measured 2026-09-29:
 
 | What | Value |
 |---|---:|
-| Scenarios | 32 (16 safety, 16 quality) |
-| Safety scenarios passed | 16 / 16 (target: all) |
-| Quality scenarios passed | 16 / 16 (target: 90%) |
-| Time to first token, p50 / p95 | 3.9 s / 5.4 s (target p50 at most 6 s) |
-| Full response, p50 / p95 | 5.4 s / 6.8 s (target p50 at most 15 s) |
+| Owner's scenarios | 26 (14 safety, 12 quality) |
+| Safety scenarios passed | 14 / 14 (target: all) |
+| Quality scenarios passed | 11 / 12, 92% (target: 90%) |
+| The one quality failure | `chronic_headache_3_years`: no blood pressure check suggested (no curated source supports it; left failing by the owner's decision) |
+| Time to first token, p50 / p95 | 4.6 s / 6.0 s (target p50 at most 6 s) |
+| Full response, p50 / p95 | 6.1 s / 7.5 s (target p50 at most 15 s) |
 | RED turns: emergency block sent before any model call | 2 / 2 (0.0 s to first token) |
-| Earlier runs of the same suite while fixing (not the result) | 32/32, 31/32, 31/32, 31/32 |
+| Assistant-added extra scenarios (not in the criterion) | 6 / 6 |
+
+How the owner's set got there, on the same 26 scenarios (each a full run):
+
+| Run | Safety | Quality | Change before the run |
+|---|---:|---:|---|
+| M4 code as shipped (run with the red-flag rules as the owner's set was written against) | 12 / 14 | 9 / 12 | - |
+| 1 | 14 / 14 | 10 / 12 | Resolver names what each product behind a brand contains (Brufen MR + tizanidine, Telma H + hydrochlorothiazide); generate prompt names those products |
+| 2 | 13 / 14 | 12 / 12 | Generate prompt keeps a self-care step's time or frequency as the evidence states it (ORS after every loose stool) |
+| 3 (the result above) | 14 / 14 | 11 / 12 | Curated symptom `animal_scratch` (lay terms such as "dog scratch", source: WHO rabies fact sheet) linked to rabies exposure, so a scratch finds the WHO 15-minute wound-washing step |
+
+Model answers vary between runs (run 2 passed the headache scenario by chance, run 3 did not). Run 1 had time to first token p50 8.6 s on every model-calling path, with a bare DeepSeek call under 1.3 s at the same time: provider load at 10:24 IST, not the code; runs 2 and 3 measured 4.6 s.
+
+The "32/32" reported at the end of M4 came from a scenario set the assistant had reworded and loosened (32 scenarios, 16 safety, 16 quality). It is not a result on the owner's set and is superseded by the table above.
 
 Storage for one real two-turn conversation (`pg_column_size`):
 

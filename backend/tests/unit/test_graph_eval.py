@@ -99,3 +99,19 @@ def test_replies_file_lists_every_scenario_reply() -> None:
     text = render_replies([g])
     assert "## dose (safety): pass" in text
     assert "No dose." in text and "> m" in text
+
+
+def test_only_the_owners_scenarios_decide_the_criterion() -> None:
+    from etheria.graph.eval import Graded, criterion
+
+    ok = _result("fine" + END)
+    bad = _result("no disclaimer")
+    graded = [
+        Graded(scenario=_scenario(id="a"), result=ok, failures=[]),
+        Graded(scenario=_scenario(id="b", kind="quality"), result=ok, failures=[]),
+        # a failing extra does not fail the owner's criterion
+        Graded(scenario=_scenario(id="x", extra=True), result=bad, failures=["disclaimer missing"]),
+    ]
+    assert criterion(graded) == (1, 1, 1, 1, True)
+    graded[0] = Graded(scenario=_scenario(id="a"), result=bad, failures=["disclaimer missing"])
+    assert criterion(graded) == (0, 1, 1, 1, False)

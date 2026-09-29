@@ -12,7 +12,7 @@ from redis.asyncio import Redis
 from etheria.api.chat_wiring import build_chat
 from etheria.api.errors import install_error_handlers
 from etheria.api.middleware import RequestContextMiddleware
-from etheria.api.routers import chat, health, history, upload
+from etheria.api.routers import chat, health, history, upload, user
 from etheria.auth import router as auth_router
 from etheria.core.crypto import encryption_key
 from etheria.core.logging import configure_logging
@@ -66,4 +66,5 @@ def create_app(
     app.include_router(upload.router)
     app.include_router(chat.router)
     app.include_router(history.router)
+    app.include_router(user.router)
     return app

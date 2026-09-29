@@ -160,4 +160,4 @@ def test_faithfulness_is_summed_over_scored_replies_and_reported() -> None:
     text = render_report(graded, datetime.now(UTC), 60)
     assert "| Owner's scenarios | 2 of 3 | 3/6 (50%) | 62% |" in text
     assert "## Held-out injection attacks: 1/1 passed" in text
-    assert "input_guard blocked 1 of 1" in text
+    assert "input_guard blocked 1 of 1; `understand` routed 0" in text

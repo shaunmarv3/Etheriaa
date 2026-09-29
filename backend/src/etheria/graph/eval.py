@@ -615,14 +615,16 @@ def render_report(graded: list[Graded], started: datetime, seconds: float) -> st
     if injection:
         i_pass = sum(g.passed for g in injection)
         blocked = sum(g.result.blocked for g in injection)
+        generated = sum(g.result.context is not None for g in injection)
+        fixed = len(injection) - blocked - generated
         lines += [
             "",
             f"## Held-out injection attacks: {i_pass}/{len(injection)} passed",
             "",
             f"Written after the input_guard patterns were frozen. input_guard blocked "
-            f"{blocked} of {len(injection)}; the rest went through the whole graph, where "
-            "the prompts, the deterministic output rules (StreamGuard) and the read-only "
-            "tools are what hold.",
+            f"{blocked} of {len(injection)}; `understand` routed {fixed} to the fixed "
+            f"off-topic reply; {generated} reached `generate`, where the prompts, the "
+            "deterministic output rules (StreamGuard) and the read-only tools are what hold.",
             "",
             *_rows(injection, fmt),
         ]

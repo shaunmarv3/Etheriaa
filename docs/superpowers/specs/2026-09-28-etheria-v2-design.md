@@ -22,7 +22,7 @@ A portfolio and learning project, demoed locally or over screen-share. No real u
 
 ### 1.2 Success criteria (checked at the end of M7)
 1. `docker compose up -d`, `uv run etheria api` and `uv run etheria worker` bring the whole system up on the owner's Windows 11 machine. Docker disk usage after seeding is at most 3 GB.
-2. The copied frontend works end to end: register, log in, streamed chat, upload a synthetic report and ask about it, history (list, open, rename, delete), regenerate, voice input, text-to-speech, delete a document, delete the account.
+2. The copied frontend works end to end: register, log in, streamed chat, upload a synthetic report and ask about it, history (list, open, rename, delete), regenerate, delete a document, delete the account.
 3. The chat pipeline is a real LangGraph `StateGraph`. `docs/ARCHITECTURE.md` embeds a Mermaid diagram generated from the compiled graph by `uv run etheria graph-diagram`, so the documentation cannot drift from the code.
 4. Extraction eval on the synthetic fixtures: every stored numeric value passes the grounding check (by construction), and at least 95% of ground-truth lab rows are recovered with the correct value, unit and reference range.
 5. Graph eval (at least 30 scenarios): all safety scenarios pass (no diagnosis, no dosing, never "safe to combine", RED plus India emergency numbers for red flags, instructions injected into a report are not followed); at least 90% of quality scenarios pass.
@@ -39,7 +39,8 @@ A portfolio and learning project, demoed locally or over screen-share. No real u
 - Features removed from the frontend: profile, user data export, session export, feedback, admin dashboard.
 - Never built, because the frontend never calls them: message edit, message delete, document rename, non-streaming `/chat`.
 - Email verification, password-reset email, OAuth / social login, MFA.
-- Multilingual support. Hinglish input may work incidentally through Whisper and the LLMs, but it is not tested.
+- Multilingual support. Hinglish input may work incidentally through the LLMs, but it is not tested.
+- Voice: speech-to-text and text-to-speech (dropped by the owner on 2026-09-29, D25).
 
 ## 2. Decision log
 
@@ -47,7 +48,7 @@ A portfolio and learning project, demoed locally or over screen-share. No real u
 |---|---|---|---|---|
 | D1 | Shape | Modular monolith: one codebase, two processes (`api`, `worker`) | Solo project; one deploy; no network hop between API and graph | Microservices; LangGraph Platform |
 | D2 | Orchestration | LangGraph 1.x: deterministic guardrail shell + bounded tool-calling retrieval agent | Guardrails are graph structure and cannot be skipped; retrieval adapts to the question | Fixed pipeline (not agentic); fully agentic (safety becomes optional) |
-| D3 | Models | Per node: DeepSeek `deepseek-flash` (non-thinking mode; model ID confirmed in M0) for structured, tool-calling and streamed generation nodes; `deepseek-v4-pro` for the post-hoc audit; voice provider decided at M5 start (section 12) | The owner holds only a DeepSeek key (changed after M0; Claude Haiku 4.5 was the original generator). M0 measured `deepseek-flash`: 10/10 structured output, 5/5 tool choice, stream time to first token p50 0.81 s. Negative-constraint adherence rests on `StreamGuard` and the graph eval; `deepseek-chat` was dropped from DeepSeek's model list by 2026-09 | Haiku for generation (no key); OpenAI audio (no key) |
+| D3 | Models | Per node: DeepSeek `deepseek-flash` (non-thinking mode; model ID confirmed in M0) for structured, tool-calling and streamed generation nodes; `deepseek-v4-pro` for the post-hoc audit; no voice (D25) | The owner holds only a DeepSeek key (changed after M0; Claude Haiku 4.5 was the original generator). M0 measured `deepseek-flash`: 10/10 structured output, 5/5 tool choice, stream time to first token p50 0.81 s. Negative-constraint adherence rests on `StreamGuard` and the graph eval; `deepseek-chat` was dropped from DeepSeek's model list by 2026-09 | Haiku for generation (no key); OpenAI audio (no key) |
 | D4 | Ingestion runtime | Temporal workflow with per-activity retry policies; Temporal CLI dev server | A durable multi-step background job that survives restarts | LangGraph background graph; FastAPI `BackgroundTasks` |
 | D5 | Upload semantics | Classify, then extract per type. Structured numbers only from text-layer PDFs. The LLM parses, code judges. Grounding check on every number | Reliability and safety | Text-only RAG; vision-model extraction |
 | D6 | Knowledge data | DDInter 2.0 public CSVs + Indian Medicine Dataset (MIT) + curated India-common conditions + a critical-interaction safety net | Free, fast, India-aware | Curated-only small graph; UMLS bulk load |
@@ -69,6 +70,8 @@ A portfolio and learning project, demoed locally or over screen-share. No real u
 | D22 | Condition ranking (M4) | Matched weight x coverage, then matched weight | Coverage alone ranked dengue third for fever + body ache + pain behind the eyes; weight alone ranked meningitis second for headache | Coverage alone (the M2 plan) |
 | D23 | Tool inputs (M4) | The test catalogue and a stated pregnancy reach the tools through the agent's own state (`create_agent(state_schema=...)`, `ToolRuntime.state`); identity only through `ToolRuntime.context` | The model should not have to pass them, and cannot fake them | Model-visible arguments |
 | D24 | Graph eval grading (M4) | Code first (triage floor, tools, the StreamGuard rules over the final reply, disclaimer, RED block first), then `deepseek-v4-pro` for the free-text expectations; every reply is written to `docs/evals/graph-replies.md` for a human check | Deterministic where possible; a model grading a model is checked by a person | Model-only grading |
+| D25 | Scope (2026-09-29) | Voice is dropped: no speech-to-text, no text-to-speech, no M5. `voice_b64` on `/chat/stream` answers 400 `voice_unavailable`; `/chat/tts` is not built; the frontend copy loses its voice controls in M6 | The owner judged voice extra to the project's purpose; no OpenAI key, and DeepSeek has no audio API | A local `faster-whisper` model |
+| D26 | Graph eval sets (2026-09-29) | The owner's 26 scenarios (`graph_scenarios.yaml`, verbatim, pinned by a hash test) alone decide criterion 5's pass/fail; the 6 the assistant added live in `graph_scenarios_extra.yaml` and are reported separately | The M4 "32/32" came from a set the assistant had reworded and loosened; the owner's own set scored 21/26 on the same code | One mixed, editable set |
 
 ## 3. Architecture
 
@@ -121,7 +124,6 @@ etheria-v2/
       ingestion/           # parse, ocr, pii_mask, classify, extractors/, grounding,
                            # chunking, workflow.py, activities.py, worker.py (embeds via retrieval.embedding)
       safety/              # red_flags, stream_guard, disclaimers, emergency, audit
-      voice/               # stt, tts
       seed/                # manifest, downloaders, loaders, verify; data/*.yaml (curated)
       cache/               # redis client, key builders
     migrations/            # Alembic
@@ -136,7 +138,7 @@ etheria-v2/
 - `api` may import anything below it. Nothing imports `api`.
 - `graph` may import `retrieval`, `knowledge`, `medical_apis`, `safety`, `llm`, `db`, `core` and `cache`.
 - `ingestion` may import `db`, `core`, `llm`, `retrieval.embedding` and `cache`. It never imports `graph`.
-- `knowledge`, `retrieval`, `medical_apis`, `safety` and `voice` never import `graph`, `ingestion` or `api`.
+- `knowledge`, `retrieval`, `medical_apis` and `safety` never import `graph`, `ingestion` or `api`.
 - `core` imports nothing from `etheria`.
 
 ### 3.4 Reuse map from v1
@@ -150,7 +152,7 @@ etheria-v2/
 | `knowledge_graph/neo4j_client`, `schema` | Port and extend. `queries.py` is rewritten for the new schema. `seeder.py` is replaced by the new runner; its curated lists are re-curated for India into `seed/data/*.yaml` |
 | `rag/reranker.py` | Port |
 | `cache/` redis client | Port. `rag_cache` is deleted: answer caching is banned by D9 |
-| `voice/stt.py`, `voice/tts.py` | Port |
+| `voice/stt.py`, `voice/tts.py` | Not carried over (voice dropped, D25) |
 | `workflows/` (Temporal) | Rewrite around the new activities; reuse the structure |
 | `api/chat.py`, `llm/*`, `nlp/*`, `rag/{retriever,context_merger,query_router}` | Rewrite as graph nodes and tools; prompts and red-flag keyword lists are reviewed and reused |
 | `auth/` (Clerk) | Delete; replaced by section 9 |
@@ -253,7 +255,7 @@ Every message passes the same deterministic shell; only the retrieval agent choo
 
 ```mermaid
 flowchart TD
-    msg["User message (text, or voice transcribed first)"] --> load["load_context (code): report index, abnormal labs, current medicines"]
+    msg["User message"] --> load["load_context (code): report index, abnormal labs, current medicines"]
     load --> guard["input_guard (code): abuse, injection, red-flag pre-scan"]
     guard -- blocked --> canned["canned_reply (code): blocked, off-topic, upload help"]
     guard -- window over 20 messages --> summ["summarize (LLM): keep last 8, fold the rest"]
@@ -305,7 +307,7 @@ Seed-time only (never per message): DDInter and the Indian Medicine Dataset (dow
 *Known limitation:* the stream rules are pattern-based. The eval suite measures what gets through.
 
 ### 4.7 Streaming and the SSE contract
-`POST /chat/stream`, body `{message, session_id?, voice_b64?}`. If `voice_b64` is present it is transcribed first (section 12).
+`POST /chat/stream`, body `{message, session_id?}`. A `voice_b64` field (sent by v1's frontend) answers 400 `voice_unavailable`: voice is dropped (D25).
 
 ```python
 graph.astream(input,
@@ -322,7 +324,6 @@ Events (`data: <json>` lines):
 | `type` | Payload | Status |
 |---|---|---|
 | `status` | `stage`, `message` (e.g. "Checking your lab results") | New, additive; the current frontend's parser ignores it |
-| `transcript` | `text` | New, additive; voice requests only |
 | `token` | `content` | Unchanged |
 | `metadata` | `session_id`, `triage_level`, `symptoms`, `follow_up_questions`, `differential`, `citations`, `agent_trace`, `message_id` | Unchanged; `message_id` is additive |
 | `done` | - | Unchanged |
@@ -348,7 +349,6 @@ Payload shapes match `frontend/src/lib/types.ts` exactly: `Symptom`, `Differenti
 | `understand`, `summarize`, `triage`, `clinical_structuring`, retrieval agent, audit, document classification and extraction | `deepseek-flash` via `langchain-deepseek`, thinking disabled (`extra_body={"thinking": {"type": "disabled"}}`) |
 | `generate` | `deepseek-flash` via `langchain-deepseek`, streamed, thinking disabled |
 | Audit (post-hoc, non-blocking) | `deepseek-v4-pro` via `langchain-deepseek` |
-| Speech-to-text / text-to-speech | Decided at M5 start (section 12) |
 
 DeepSeek's structured-output and tool-calling reliability is verified first, in M0. If a node fails its eval, the registry lets that node alone switch model.
 
@@ -450,6 +450,8 @@ A multi-hop example, *"Can I take ibuprofen for my fever? I'm on telmisartan."*:
 
 ### 6.3 Medicine resolution
 Input name -> is it already an ingredient, synonym or drug? -> exact brand match -> trigram match (similarity at least 0.45; the best ingredient set must lead the best *different* ingredient set by 0.1, otherwise the result is ambiguous) -> ingredients -> spelling, salt and synonym canonicalisation -> Drug node. The lead rule compares ingredient sets, not brand names: "Dolo 650" and "Dolo 500" are strengths of one product, not an ambiguity. Anything unresolved is returned as unresolved, never guessed.
+
+The result also says what each product behind the name contains (`variants`, added 2026-09-29 after the owner's eval caught the gap): for an ambiguous name, one entry per ingredient set among the close candidates ("Brufen MR Soft Gelatin Capsule (ibuprofen + tizanidine)"); for a matched brand, up to five other products whose name starts with the same word as a whole word and whose ingredients differ, plainest name first ("Telma 40" matches Telma 40 Tablet, and Telma H Tablet adds hydrochlorothiazide; Telmax is a different name). The tools pass this to the answer, which names those products, says which ingredients were checked and asks the user to check the strip.
 
 `InteractionService.check(names)` resolves every name, checks every pair of drugs from *different* products in both directions (pairs inside one combination product are not reported), reports the most severe level across sources, lists pairs with no edge as `not_found` with the note that this is not a safety statement, lists unresolved and ambiguous names, and flags the same drug appearing in two products (Dolo + Calpol: double paracetamol).
 
@@ -617,9 +619,9 @@ Redis also holds rate-limit counters, and nothing else: v1's session cache is re
 | Endpoint | Status | Notes |
 |---|---|---|
 | `POST /auth/register`, `/auth/login`, `/auth/refresh`, `/auth/logout`; `GET /auth/me` | New | Section 9 |
-| `POST /chat/stream` | Kept | Section 4.7. 20 per minute per user; message 1-4,000 characters; `voice_b64` answers 400 `voice_unavailable` until M5; without `DEEPSEEK_API_KEY` chat answers 503 `chat_unavailable` |
+| `POST /chat/stream` | Kept | Section 4.7. 20 per minute per user; message 1-4,000 characters; `voice_b64` answers 400 `voice_unavailable` (voice dropped, D25); without `DEEPSEEK_API_KEY` chat answers 503 `chat_unavailable` |
 | `POST /chat/regenerate` | Kept | `{session_id}` -> the v1 `ChatResponse` shape (not streamed); section 4.8 |
-| `POST /chat/tts` | Kept | `{text, voice, speed}` -> `{audio_b64}` |
+| `POST /chat/tts` | Cut | Voice dropped (D25); the frontend's text-to-speech button is removed in M6 |
 | `GET /history/` | Kept | `?page&page_size` -> `{total, page, page_size, sessions[]}`, plus an additive `name` |
 | `GET /history/{id}` | Kept | Messages gain additive `message_id`, `triage_level`, `citations`, `differential` |
 | `PATCH /history/{id}` | Kept | `{name}` |
@@ -666,17 +668,15 @@ Errors use one JSON shape: `{"error": {"code", "message", "request_id"}}`.
 The substantive obligations under the Rules apply from 13 May 2027. v2 is designed to them, but it is not a compliance certification.
 
 ### 11.3 Third-party processors
-DeepSeek (API servers outside India), the M5 voice provider if it is hosted, and, when enabled, LangSmith. With real users, each would need a processor agreement and a cross-border transfer review. In v2 only synthetic data reaches them. Because the model registry routes per node, any node can move to a self-hosted open-weight model without changing the graph.
+DeepSeek (API servers outside India) and, when enabled, LangSmith. With real users, each would need a processor agreement and a cross-border transfer review. In v2 only synthetic data reaches them. Because the model registry routes per node, any node can move to a self-hosted open-weight model without changing the graph.
 
 ## 12. Voice
-**Open (decided at M5 start):** the owner holds no OpenAI key, and DeepSeek has no audio API. Candidates: a local CPU speech-to-text model (for example `faster-whisper`) with browser or local text-to-speech, or an OpenAI key if the owner obtains one. The API contract below stays fixed either way.
-- **Speech-to-text:** `voice_b64` on `/chat/stream` (25 MB limit; v1's MIME handling ported). The transcript is emitted as a `transcript` event and used as the message.
-- **Text-to-speech:** `POST /chat/tts` `{text, voice, speed}` -> `{audio_b64}`; speed 0.25-4.0; text capped at 4,096 characters.
+**Dropped (D25, 2026-09-29).** The owner judged voice extra to the project's purpose. v2 has no speech-to-text or text-to-speech: `voice_b64` on `/chat/stream` answers 400 `voice_unavailable`, `/chat/tts` is not built, and M6 removes the voice controls from the frontend copy.
 
 ## 13. Frontend (a copy of v1)
 Copied from `D:\Etheria\etheria` into `frontend/`; the original is not modified. All changes are made in the copy:
 1. **Auth.** Remove `@clerk/nextjs`. Add an `AuthProvider` and drop-in `useAuth()` / `useUser()` hooks exposing the surface the app already uses (`getToken`, `isSignedIn`, `isLoaded`, `userId`, the user's email), so the 18 importing files change their import path rather than their logic. Add sign-in and sign-up pages. The access token lives in memory, with a silent refresh on load and on any 401 through `/auth/refresh`, plus client-side route guarding. Replace `ClerkProvider`, `clerkMiddleware` and the Clerk logic in `proxy.ts`. Delete `app/dev/token/`. Refresh is single-flight in the client: concurrent 401s share one `/auth/refresh` call, because a second refresh with the same cookie is treated as reuse and revokes the session.
-2. **Removed features.** Delete the profile, data export, feedback and admin UI together with their `api.ts` functions (`fetchProfile`, `updateProfile`, `exportUserData`, `submitFeedback`, `fetchAdmin*`, `clearAdminCache`), plus the never-called `sendChat`, `editMessage`, `deleteMessage`, `renameDocument` and `exportSession`.
+2. **Removed features.** Delete the profile, data export, feedback and admin UI together with their `api.ts` functions (`fetchProfile`, `updateProfile`, `exportUserData`, `submitFeedback`, `fetchAdmin*`, `clearAdminCache`), plus the never-called `sendChat`, `editMessage`, `deleteMessage`, `renameDocument` and `exportSession`. Remove the voice controls (microphone input and the text-to-speech button) and their `api.ts` calls (D25).
 3. **Download.** `getDocumentDownloadUrl` becomes an authenticated fetch into a blob, followed by a save.
 4. **Optional (M6 stretch).** Show `status` events as a progress line under the typing indicator.
 
@@ -695,7 +695,7 @@ Copied from `D:\Etheria\etheria` into `frontend/`; the original is not modified.
 | Integration | Repositories, RLS, migrations, hybrid search, Neo4j queries, the Temporal workflow | Real Postgres, Neo4j and Redis from `infra/`; the Temporal test environment |
 | Contract | The SSE event sequence and payload keys against `frontend/src/lib/types.ts`; REST response shapes | Snapshot tests pinned to the TypeScript types |
 | Extraction eval | Synthetic fixtures -> expected rows | Precision and recall report; grounding rejection counts |
-| Graph eval | At least 30 scenarios across synthetic user profiles: routing, tool choice, citation of lab values, refusals, RED handling, resistance to injected reports, "never safe to combine", drug cautions from the user's reports, questions outside the curated graph. 32 scenarios in `backend/tests/evals/graph_scenarios.yaml` (6 from the owner's own questions; 16 safety, 16 quality), graded as D24 | Real models, opt-in (`uv run etheria eval --suite graph`); report in `docs/evals/graph.md`, every reply in `docs/evals/graph-replies.md` |
+| Graph eval | At least 30 scenarios across synthetic user profiles: routing, tool choice, citation of lab values, refusals, RED handling, resistance to injected reports, "never safe to combine", drug cautions from the user's reports, questions outside the curated graph. The owner's 26 in `backend/tests/evals/graph_scenarios.yaml` (verbatim, hash-pinned; 14 safety, 12 quality) decide the criterion; 6 assistant-added extras in `graph_scenarios_extra.yaml` (among them the injected report) are reported separately (D26); graded as D24 | Real models, opt-in (`uv run etheria eval --suite graph`); report in `docs/evals/graph.md`, every reply in `docs/evals/graph-replies.md` |
 | Security | Cross-user attempts (API, tool, SQL under RLS), token reuse, rate limits, upload fuzzing, an injection corpus | pytest |
 
 **Synthetic fixtures** (`tests/fixtures/reports/`) are generated by a ReportLab script, so the ground truth is known by construction: five lab reports in Indian diagnostic-chain layouts (full-body checkup, thyroid profile, lipid profile, CBC, HbA1c + glucose), one discharge summary, one digital prescription, a scanned-image copy of a lab report (to prove no numbers are extracted from images), and a report containing an injected instruction. All carry fake PII, so masking is tested too.
@@ -715,7 +715,7 @@ Copied from `D:\Etheria\etheria` into `frontend/`; the original is not modified.
 | **M2 Knowledge** | Medical API ports, curated data files (owner-reviewed), seeder with verification | Seeder canaries pass; `docs/NUMBERS.md` written |
 | **M3 Ingestion** | Upload API, encrypted storage, the Temporal workflow and activities, synthetic fixture generator, extraction eval | The extraction criterion in 1.2 is met; the workflow survives a worker restart mid-run |
 | **M4 Reasoning graph** (done 2026-09-29) | State, nodes, retrieval agent and tools, triage, `StreamGuard`, generation, finalize, SSE, history, regenerate, graph eval; drug cautions from the user's record (4.5), the no-evidence rule (4.6), and the M2 gaps listed in 4.5 (coverage ranking, short brand names, lay terms) | The graph-eval criterion in 1.2 is met; contract tests green |
-| **M5 Voice** | Speech-to-text on `/chat/stream`, TTS endpoint | An end-to-end voice turn works |
+| ~~M5 Voice~~ | Dropped (D25) | - |
 | **M6 Frontend** | Copy, auth swap, removed features, download fix | The full end-to-end flow in 1.2 works in the browser |
 | **M7 Hardening** | Security suite, pruning and partition schedules, retention, latency and storage measurements, `ARCHITECTURE.md` (generated diagram), `SECURITY.md`, final numbers | Every success criterion in 1.2 holds |
 
@@ -743,4 +743,4 @@ When M7 closes, every current claim is true, and its numbers come from `docs/NUM
 - "LangGraph": the chat graph, with its diagram generated from code.
 - "Tri-layer RAG (pgvector + PubMed + Neo4j)": true, with MedlinePlus as well.
 - The Neo4j bullet is rewritten with the real counts and "DDInter-backed interaction checks with RxNorm normalisation".
-- "Temporal", "BGE-large-en-v1.5" and "Redis" are all true. "Whisper" is true only if M5 picks a Whisper-family model (for example `faster-whisper`); otherwise the claim is rewritten. "Clerk Auth" becomes "JWT auth with refresh-token rotation".
+- "Temporal", "BGE-large-en-v1.5" and "Redis" are all true. "Whisper" is removed: voice is dropped (D25). "Clerk Auth" becomes "JWT auth with refresh-token rotation".

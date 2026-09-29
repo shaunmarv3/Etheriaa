@@ -62,7 +62,7 @@ async def stream(
 ) -> StreamingResponse:
     await _limit(request, limiter, user_id)
     if body.voice_b64:
-        raise AppError("Voice input is not available yet", code="voice_unavailable")
+        raise AppError("Voice input is not supported", code="voice_unavailable")
     turn = await service.open_turn(user_id, body.message, body.session_id, request.state.request_id)
     return StreamingResponse(
         _sse(service.events(turn)),

@@ -276,6 +276,15 @@ async def test_message_validation(chat_client) -> None:
     assert (await client.post("/chat/stream", json={"message": "hi"})).status_code == 401
 
 
+async def test_voice_input_is_refused(chat_client) -> None:
+    # Voice is dropped (spec D25); v1's frontend may still send the field.
+    client = await chat_client(_models())
+    headers = await _token(client)
+    body = {"message": "hi", "voice_b64": "AAAA"}
+    r = await client.post("/chat/stream", json=body, headers=headers)
+    assert (r.status_code, r.json()["error"]["code"]) == (400, "voice_unavailable")
+
+
 async def test_agent_tools_run_through_the_api(owner_conn, chat_client) -> None:
     models = _models(
         "Your values [1].",

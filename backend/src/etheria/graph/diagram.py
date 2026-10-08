@@ -61,4 +61,5 @@ def write_diagram(path: Path) -> None:
         current = current.rstrip() + "\n\n" + START + "\n" + END + "\n"
     before, rest = current.split(START, 1)
     _, after = rest.split(END, 1)
+    path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(before + block + after, encoding="utf-8")

@@ -143,6 +143,7 @@ def render_section(
 
 def write_numbers(path: Path, section: str) -> None:
     block = f"{BEGIN}\n{section}\n{END}"
+    path.parent.mkdir(parents=True, exist_ok=True)
     if not path.exists():
         path.write_text(
             "# Numbers\n\nEvery number here comes from a query against the running system.\n\n"

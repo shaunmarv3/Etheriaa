@@ -20,7 +20,7 @@ from etheria.core.settings import Settings
 from etheria.db.session import Database
 
 if sys.platform == "win32":
-    # psycopg async cannot use the ProactorEventLoop (see CLAUDE.md).
+    # psycopg async cannot use the ProactorEventLoop (Windows).
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 BACKEND = Path(__file__).resolve().parent.parent

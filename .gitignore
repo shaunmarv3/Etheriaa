@@ -12,3 +12,7 @@ node_modules/
 # never committed). Curated YAML under src/etheria/seed/data/ IS committed.
 /data/
 backend/data/
+
+# Local only: project notes and design docs are not published.
+/docs/
+/CLAUDE.md
